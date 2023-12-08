@@ -10,7 +10,7 @@ define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, spl
         },
 
         render: function() {
-            this.container.innerHTML = "Let's start!" ;
+            this.el.innerHTML = "Let's start!" ;
 
             return this ;
         },
