@@ -57,7 +57,7 @@ class AbuseIPDBCheckCommand(StreamingCommand):
         doc='''
             **Syntax:** **maxAgeInDays=***<integer>*
             **Description:** number of days for the oldest report''',
-        require=False, validate=validators.Integer(), default=90)           
+        require=False, validate=validators.Integer(1), default=90)           
 
     # This method is called by splunkd before the
     # command executes. It is used to get the configuration
@@ -66,7 +66,7 @@ class AbuseIPDBCheckCommand(StreamingCommand):
         try:
             abuseipdb.prepare(self)
         except Exception as e:
-            self.error_exit(str(e))
+            self.error_exit(None, str(e))
             return
         
     # This is the method treating all the events.
@@ -84,8 +84,10 @@ class AbuseIPDBCheckCommand(StreamingCommand):
                         event["abuseipdb_" + key] = data[key]
             except abuseipdb.AbuseIPDBRateLimitReached as e:
                 self.write_warning("AbuseIPDB API rate limit reached")
+            except abuseipdb.AbuseIPDBInvalidParameter as e:
+                self.write_warning(str(e))
             except Exception as e:
-                self.error_exit(str(e))
+                self.error_exit(None, str(e))
                 return
             
             yield event

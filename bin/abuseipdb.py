@@ -17,6 +17,11 @@ ACTIONS = {
 class AbuseIPDBRateLimitReached(Exception):
     pass
 
+# This exception is raised when an invalid parameter was
+# given to the AbuseIPDB API. This should not stop the
+# process.
+class AbuseIPDBInvalidParameter(Exception):
+    pass
 
 # Prepare the API to be used.
 def prepare(command):
@@ -58,14 +63,14 @@ def api(endpoint, params):
     
     # If a parameter is invalid.
     if response.status_code == 422:
-        parameter = "" 
+        details = "" 
         
         try:
-            parameter = str(json['errors'][0]['source']['parameter'])
+            details = str(json['errors'][0]['detail'])
         except:
-            parameter = str(json['errors'])
+            details = str(json['errors'])
 
-        raise Exception("Invalid AbuseIPDB parameter: " + parameter)
+        raise AbuseIPDBInvalidParameter("AbuseIPDB error: " + details)
     
     # If the response is not succesful
     if response.status_code != 200:
