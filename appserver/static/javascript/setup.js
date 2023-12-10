@@ -19,15 +19,12 @@ var app_name = "abuseipdb" ;
 require.config({
     paths: {
         // $SPLUNK_HOME/etc/apps/SPLUNK_APP_NAME/appserver/static/javascript/views/setup_page_example
-        SetupView: "../app/" + app_name + "/javascript/views/setup/setup_view",
+        SetupView: "../app/" + app_name + "/javascript/views/setup_view",
     },
     scriptType: "module",
-});
+}) ;
 
 require(["backbone", "jquery", "SetupView"], function(Backbone, jquery, SetupView) {
-    var setup_page = new SetupView({
-        el: jquery("#setup_container"),
-    }) ;
-
-    setup_page.render() ;
+    console.log("here") ;
+    var setup_page = new SetupView({}) ;
 }) ;

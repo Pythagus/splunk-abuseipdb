@@ -1,11 +1,41 @@
 <dashboard isDashboard="false" script="javascript/setup.js" stylesheet="styles/setup.css" version="1.1">
     <label>Setup</label>
     <description>Configure the AbuseIPDB app to supplement your data with AbuseIPDB information.</description>
-
     <row>
         <panel>
             <html>
-                <div id="setup_container"></div>
+                <div class="container py-5">
+                    <h1>Global settings</h1>
+                    <div class="field">
+                        <div class="title">
+                            <h3 style="font-weight: bold">AbuseIPDB API Token</h3>
+                            <p>
+                                The token for AbuseIPDB API is required to allow this Splunk app to connect to the remote endpoint. 
+                                It will be encrypted using Splunk's default password storage mechanism. Getting a token is free, but 
+                                the API may suffer from significant performance degradation
+                            </p>
+                        </div>
+                    </div> 
+                    <div class="form-horizontal control-group shared-controls-controlgroup control-group-default">
+                        <label class="control-label" for="abuseipdb_token">Token</label>
+                        <div role="group" class="controls controls-join">
+                            <div class="control shared-controls-textareacontrol control-default" data-name="abuseipdb_token">
+                                <span class="uneditable-input uneditable-input-multiline" style="display:none"></span>
+                                <input type="password" id="abuseipdb_token" name="abuseipdb_token" value=""></input>
+                            </div>
+                        </div>
+                        <div class="help-block">
+                            <span>
+                                Defaults to empty. This Splunk app will not work without this setting. To test whether this was configured 
+                                successfully, you may use the SPL " | abuseipdb " command in an ad-doc search and check if it completes successfully.
+                            </span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button name="cancel_button" class="btn btn-default">Cancel</button>
+                        <button name="save_button" class="btn btn-primary">Save</button>
+                    </div>
+                </div>
             </html>
         </panel>
     </row>
