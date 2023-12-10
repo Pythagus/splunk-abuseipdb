@@ -1,79 +1,269 @@
 #!/usr/bin/env python
 
-import requests
+import os
+import sys
+import ipaddress
+import api as abuseipdb
 
-# The API key used to authenticate to AbuseIPDB API.
-API_KEY = None
+# Add the Splunk internal library
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
+from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 
-# The possible actions that this API supports.
-ACTIONS = {
-    'blacklist': 'get',
-    'check': 'get',
-    'report': 'post',
-}
+# This cache is used to reduce the number
+# of API calls, if the IP was already called before.
+IP_CACHE = {}
 
-# This exception is raised when the API reached its limit.
-class AbuseIPDBRateLimitReached(Exception):
-    pass
+# This function makes a "check" action
+# for the given IP address.
+def _check_ip(http_params):
+    global IP_CACHE
 
-# This exception is raised when an invalid parameter was
-# given to the AbuseIPDB API. This should not stop the
-# process.
-class AbuseIPDBInvalidParameter(Exception):
-    pass
+    ip = http_params['ipAddress']
 
-# Prepare the API to be used.
-def prepare(command):
-    global API_KEY
-
-    # Get the API key.
-    for passwd in command.service.storage_passwords:
-        if passwd.username == "abuseipdb" and (passwd.realm is None or passwd.realm.strip() == ""):
-            API_KEY = passwd.clear_password
-
-    # Check whether the API key was retrieved.
-    if API_KEY is None or API_KEY == "defaults_empty":
-        command.error_exit(None, "No API key found for AbuseIPDB. Re-run the app setup.")
-    
-
-# This method makes an API call to the
-# AbuseIPDB endpoint.
-def api(endpoint, params):
-    headers = {
-        'Key': API_KEY,
-        'Accept': 'application/json'
+    # Let's make an HTTP request!
+    response = abuseipdb.api('check', http_params)
+    json = response['data']
+    data = {
+        "type": 'Public' if json['isPublic'] else 'Private',
+        "score": json['abuseConfidenceScore'],
+        "usage": json['usageType'],
+        "company": json['isp'],
+        "domain": json['domain'],
+        "tor": json['isTor'],
+        "nbrReports": json['totalReports'],
+        "lastReported": json['lastReportedAt']
     }
 
-    # If the action is not known.
-    if not endpoint in ACTIONS:
-        raise Exception("Action %s not supported" % endpoint)
-    
-    response = requests.request(ACTIONS[endpoint], 'https://api.abuseipdb.com/api/v2/' + endpoint, headers=headers, params=params)
-    json = response.json()
+    IP_CACHE[ip] = data
 
-    # As refered in https://docs.abuseipdb.com/#api-daily-rate-limits
-    if response.status_code == 429:
-        raise AbuseIPDBRateLimitReached()
+    return data
+
+# This function makes a "check" action
+# for the given network range.
+def _check_range(http_params):
+    global IP_CACHE
+
+    range = http_params['network']
+ 
+    # If the IP address contains a "/", then it is a
+    # whole network range we need to check. In that case,
+    # we need to do a "check-block" operation instead of a
+    # simple check.
+    response = abuseipdb.api('check-block', http_params)
+    json = response['data']
+
+    # If it is a network, we will generate new events
+    # for each IP found in the network. The user will
+    # be able to merge the data aggregating with the
+    # ipfield value.
+    data = []
+
+    for values in json['reportedAddress']:
+        data.append({
+            "ip": values['ipAddress'],
+            "nbrReports": values['numReports'],
+            "lastReported": values['mostRecentReport'],
+            "score": values['abuseConfidenceScore'],
+            "country": values['countryCode'],
+        })
+
+    IP_CACHE[range] = data
+
+    return data
+
+# Merge the two dictionnaries by making
+# a fresh new one.
+def merge_dict(dict1, dict_abuseipdb):
+    new_dict = {}
+
+    for i in dict1:
+        new_dict[i] = dict1[i]
+
+    for j in dict_abuseipdb:
+        new_dict["abuseipdb_" + j] = dict_abuseipdb[j]
     
-    # When testing, this code is returned for when no token
-    # is provided, or if the provided one is invalid.
-    if response.status_code == 401:
-        raise Exception("Invalid AbuseIPDB token given.")
+    return new_dict
+
+@Configuration()
+class AbuseIPDBCommand(StreamingCommand):
+
+    mode = Option(
+        doc='''
+            **Syntax:** **mode=***<check|blacklist>*
+            **Description:** Mode used to interact with AbuseIPDB API''',
+        require=False, validate=validators.Set('check', 'blacklist'), default="check")
+
+    ipfield = Option(
+        doc='''
+            **Syntax:** **ipfield=***<fieldname>*
+            **Description:** Name of the field which contains the ip''',
+        require=False, validate=validators.Fieldname())
     
-    # If a parameter is invalid.
-    if response.status_code == 422:
-        details = "" 
-        
+    publiconly = Option(
+        doc='''
+            **Syntax:** **publiconly=***<bool>*
+            **Description:** Should only public IP be considered?''',
+        require=False, validate=validators.Boolean(), default=False)
+    
+    maxAgeInDays = Option(
+        doc='''
+            **Syntax:** **maxAgeInDays=***<integer>*
+            **Description:** number of days for the oldest report''',
+        require=False, validate=validators.Integer(1), default=30)
+
+    confidence = Option(
+        doc='''
+            **Syntax:** **confidence=***<integer>*
+            **Description:** Minimum confidence level''',
+        require=False, validate=validators.Integer(0), default=100)
+    
+    limit = Option(
+        doc='''
+            **Syntax:** **limit=***<integer>*
+            **Description:** maximum number of IP to get''',
+        require=False, validate=validators.Integer(1))
+    
+    ipVersion = Option(
+        doc='''
+            **Syntax:** **ipVersion=***<4|6|mixed>*
+            **Description:** number of days for the oldest report''',
+        require=False, validate=validators.Set("4", "6", "mixed"), default="mixed")
+    
+    onlyCountries = Option(
+        doc='''
+            **Syntax:** **onlyCountries=***<string>*
+            **Description:** get the IP addresses of a specific country (separated by comma)''',
+        require=False)
+    
+    exceptCountries = Option(
+        doc='''
+            **Syntax:** **exceptCountries=***<string>*
+            **Description:** remove specific countries from the blacklisted IP addresses list (separated by comma)''',
+        require=False)     
+
+    # This method is called by splunkd before the
+    # command executes. It is used to get the configuration
+    # data from Splunk.
+    def prepare(self):
         try:
-            details = str(json['errors'][0]['detail'])
-        except:
-            details = str(json['errors'])
-
-        raise AbuseIPDBInvalidParameter("AbuseIPDB error: " + details)
+            abuseipdb.prepare(self)
+        except Exception as e:
+            self.error_exit(None, str(e))
+            return
     
-    # If the response is not succesful
-    if response.status_code != 200:
-        raise Exception("Got status code %d from AbuseIPDB API." % response.status_code)
-    
-    return json
+    # After this method is called, it ensures that the
+    # given parameter is not None.
+    def ensureParameter(self, param: str):
+        if getattr(self, param) is None:
+            raise Exception("AbuseIPDB: %s is required (mode = %s)" % (param, self.mode))
 
+    # Make an API call for checking a given
+    # IP address. By the way, it could also
+    # be a network range to be checked.
+    def check(self, event):
+        # First, ensure all the required parameters are given.
+        self.ensureParameter('ipfield')
+        self.ensureParameter('maxAgeInDays')
+
+        ip = event[self.ipfield]
+
+        # If there is no IP field at this step, then
+        # return an empty array <=> no data retrieved.
+        if ip is None:
+            return {}
+        
+        # First, we check whether the IP is already in the
+        # cache. If so, we don't need to make an API call.
+        if ip in IP_CACHE:
+            return IP_CACHE[ip]
+        
+        # If it is a range, then we have to do
+        # a "check-block" call.
+        if "/" in ip:
+            # If the "public only" flag is set, and the IP is private,
+            # then don't do the API call.
+            try:
+                if self.publiconly and ipaddress.ip_network(ip, strict=False).is_private:
+                    return {}
+            except ValueError: # Exception raised when the value is not an IP address
+                return {}
+            
+            return _check_range({
+                'network': ip,
+                'maxAgeInDays': self.maxAgeInDays
+            })
+        
+        # If the "public only" flag is set, and the IP is private,
+        # then don't do the API call.
+        try:
+            if self.publiconly and ipaddress.ip_address(ip).is_private:
+                return {}
+        except ValueError: # Exception raised when the value is not an IP address
+            return {}
+
+        return _check_ip({
+            'ipAddress': ip,
+            'maxAgeInDays': self.maxAgeInDays
+        })
+    
+    def blacklist(self):
+        # Let's make an HTTP request!
+        response = abuseipdb.api('blacklist', {
+            'confidenceMinimum': self.confidence,
+            'limit': self.limit,
+            'onlyCountries': self.onlyCountries,
+            'exceptCountries': self.exceptCountries,
+            'ipVersion': self.ipVersion,
+        })
+
+        values = []
+        for data in response['data']:
+            values.append({
+                'ip': data['ipAddress'],
+                'country': data['ipAddress'],
+                'abuseScore': data['abuseConfidenceScore'],
+                'lastReportedAt': data['lastReportedAt'],
+            })
+
+        return values
+        
+    # This is the method treating all the events.
+    def stream(self, events):
+        if self.mode == "blacklist":
+            try:
+                for event in self.blacklist():
+                    yield event
+            except abuseipdb.AbuseIPDBRateLimitReached as e:
+                self.write_warning("AbuseIPDB API rate limit reached")
+            except abuseipdb.AbuseIPDBInvalidParameter as e:
+                self.write_warning(str(e))
+            except Exception as e:
+                self.error_exit(None, str(e))
+            return
+
+        for event in events:
+            try:
+                data = list()
+
+                # If it is a "check an IP" call.
+                if self.mode == "check":
+                    data = self.check(event)
+
+                data = data if isinstance(data, list) else [data]
+
+                for arr in data:
+                    new_event = merge_dict(event, arr)
+                    yield new_event
+            except abuseipdb.AbuseIPDBRateLimitReached as e:
+                self.write_warning("AbuseIPDB API rate limit reached")
+                yield event
+            except abuseipdb.AbuseIPDBInvalidParameter as e:
+                self.write_warning(str(e))
+                yield event
+            except Exception as e:
+                self.error_exit(None, str(e))
+                return
+
+
+# Finally, say to Splunk that this command exists.
+dispatch(AbuseIPDBCommand, sys.argv, sys.stdin, sys.stdout, __name__)
