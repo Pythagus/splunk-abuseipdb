@@ -165,12 +165,12 @@ class AbuseIPDBCommand(StreamingCommand):
         self.ensureParameter('ipfield')
         self.ensureParameter('maxAgeInDays')
 
-        ip = event[self.ipfield]
-
         # If there is no IP field at this step, then
         # return an empty array <=> no data retrieved.
-        if ip is None:
+        if not self.ipfield in event or event[self.ipfield] is None:
             return {}
+        
+        ip = event[self.ipfield]
         
         # First, we check whether the IP is already in the
         # cache. If so, we don't need to make an API call.
