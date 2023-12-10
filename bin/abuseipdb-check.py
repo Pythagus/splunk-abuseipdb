@@ -31,7 +31,7 @@ def _check(http_params):
     data = {
         "type": 'Public' if json['isPublic'] else 'Private',
         "score": json['abuseConfidenceScore'],
-        "country": json['countryCode'],
+        "country": json['countryName'] + " (" + json['countryCode'] + ")",
         "usage": json['usageType'],
         "company": json['isp'],
         "domain": json['domain'],
