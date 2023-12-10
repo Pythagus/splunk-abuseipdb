@@ -2,8 +2,12 @@
 
 import requests
 
+# The API key used to authenticate to AbuseIPDB API.
+API_KEY = None
+
 # The possible actions that this API supports.
 ACTIONS = {
+    'blacklist': 'get',
     'check': 'get',
     'report': 'post',
 }
