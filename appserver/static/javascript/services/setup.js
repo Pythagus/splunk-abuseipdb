@@ -1,4 +1,4 @@
-import * as SplunkHelpers from './helpers.js'
+import * as SplunkHelpers from './configuration.js'
 
 // Default configuration files.
 const SAVEDSEARCHES_CONF = 'savedsearches' ;
@@ -45,7 +45,8 @@ async function reload_splunk_app(
     await splunk_js_sdk_apps.fetch();
 
     var current_app = splunk_js_sdk_apps.item(app_name);
-    current_app.reload();
+    await current_app.fetch() ;
+    current_app.reload() ;
 };
 
 function redirect_to_splunk_app_homepage(

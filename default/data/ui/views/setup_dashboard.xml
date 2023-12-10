@@ -5,6 +5,8 @@
         <panel>
             <html>
                 <div class="container py-5">
+                    <div id="errors"></div>
+                    <button name="reload_button" class="btn btn-primary" style="display: none">Success! Reload page</button>
                     <h1>Global settings</h1>
                     <div class="field">
                         <div class="title">

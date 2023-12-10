@@ -16,12 +16,15 @@ define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, spl
             Backbone.View.prototype.initialize.apply(this, arguments) ;
 
             // Configure the click event listener.
-            jquery() ;
+            jquery("button[name='save_button']").click(() => this.trigger_setup()) ;
+            jquery("button[name='reload_button']").click(() => this.trigger_reload()) ;
+
+            // Let's start!
             console.log("App is ready") ;
         },
 
-        events: {
-            "click button[name='save_button']": "trigger_setup",
+        trigger_reload: function trigger_reload() {
+            Setup.redirect_to_splunk_app_homepage(APP_NAME) ;
         },
 
         trigger_setup: function trigger_setup() {
@@ -48,7 +51,6 @@ define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, spl
                     app: APP_NAME,
                     sharing: "app",
                 }) ;
-                console.log(splunk_service) ;
 
                 // Setting up abuseipdb.conf
                 //await Configuration.update_configuration_file(splunk_service, ABUSEIPDB_CONF, "stanza", {}) ;
@@ -72,7 +74,10 @@ define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, spl
                 await Setup.reload_splunk_app(splunk_service, APP_NAME) ;
 
                 // Redirect to the Splunk Search home page
-                Setup.redirect_to_splunk_app_homepage("search") ;
+                // This is making 'reload_splunk_app' function crashing (the server conf is not
+                // reloaded). So, I replaced this with a button to reload, waiting for a bug-correction.
+                //Setup.redirect_to_splunk_app_homepage(APP_NAME) ;
+                jquery("button[name='reload_button']").css({'display': 'block'}) ;
             } catch(error) {
                 // This could be better error catching.
                 // Usually, error output that is ONLY relevant to the user
@@ -115,7 +120,7 @@ define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, spl
             // Hides the element if no messages, shows if any messages exist
             var did_error_messages_occur = error_messages.length > 0;
     
-            var error_output_element = jquery(".setup.container .error.output");
+            var error_output_element = jquery("#errors") ; 
     
             if (did_error_messages_occur) {
                 var new_error = document.createElement("ul")
