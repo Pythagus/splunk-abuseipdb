@@ -2,16 +2,11 @@
 
 import requests
 
-# The HTTP header values as mentioned in the doc.
-# See: https://docs.abuseipdb.com
-API_KEY = "55893f8a96a7f1e952451a40c2cbbf805c300b95c445e3ee996df913622c7b26cfac5a8f0710a988"
-
 # The possible actions that this API supports.
 ACTIONS = {
     'check': 'get',
     'report': 'post',
 }
-
 
 # This exception is raised when the API reached its limit.
 class AbuseIPDBRateLimitReached(Exception):

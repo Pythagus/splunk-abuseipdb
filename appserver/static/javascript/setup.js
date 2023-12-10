@@ -25,6 +25,5 @@ require.config({
 }) ;
 
 require(["backbone", "jquery", "SetupView"], function(Backbone, jquery, SetupView) {
-    console.log("here") ;
     var setup_page = new SetupView({}) ;
 }) ;
