@@ -13,6 +13,31 @@ from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, 
 # of API calls, if the IP was already called before.
 IP_CACHE = {}
 
+# This function adds the missing fields after a
+# check call.
+def _check_ensure_format(data):
+    if isinstance(data, list):
+        array = []
+
+        for arr in data:
+            array.append(_check_ensure_format(arr))
+
+        return array
+
+    return merge_dict(data, {
+        "ip": None,
+        "type": None,
+        "score": None,
+        "usage": None,
+        "country": None,
+        "company": None,
+        "domain": None,
+        "tor": None,
+        "nbrReports": None,
+        "lastReported": None,
+    }, prefix="")
+
+
 # This function makes a "check" action
 # for the given IP address.
 def _check_ip(http_params):
@@ -24,10 +49,12 @@ def _check_ip(http_params):
     response = abuseipdb.api('check', http_params)
     json = response['data']
     data = {
+        "ip": ip,
         "type": 'Public' if json['isPublic'] else 'Private',
         "score": json['abuseConfidenceScore'],
         "usage": json['usageType'],
         "company": json['isp'],
+        "country": json['countryCode'],
         "domain": json['domain'],
         "tor": json['isTor'],
         "nbrReports": json['totalReports'],
@@ -56,16 +83,24 @@ def _check_range(http_params):
     # for each IP found in the network. The user will
     # be able to merge the data aggregating with the
     # ipfield value.
-    data = []
 
-    for values in json['reportedAddress']:
-        data.append({
-            "ip": values['ipAddress'],
-            "nbrReports": values['numReports'],
-            "lastReported": values['mostRecentReport'],
-            "score": values['abuseConfidenceScore'],
-            "country": values['countryCode'],
-        })
+    # If there are data in the response, then
+    # iterate on the result. Else, just return
+    # an empty object, so that we keep the initial
+    # event intact.
+    if json['reportedAddress']:
+        data = []
+
+        for values in json['reportedAddress']:
+            data.append({
+                "ip": values['ipAddress'],
+                "nbrReports": values['numReports'],
+                "lastReported": values['mostRecentReport'],
+                "score": values['abuseConfidenceScore'],
+                "country": values['countryCode'],
+            })
+    else: 
+        data = {}
 
     IP_CACHE[range] = data
 
@@ -73,14 +108,14 @@ def _check_range(http_params):
 
 # Merge the two dictionnaries by making
 # a fresh new one.
-def merge_dict(dict1, dict_abuseipdb):
-    new_dict = {}
+def merge_dict(dict1, dict_abuseipdb, prefix="abuseipdb_"):
+    new_dict = {k:v for k, v in dict1.items()}
 
-    for i in dict1:
-        new_dict[i] = dict1[i]
+    for key, value in dict_abuseipdb.items():
+        prefixed_key = prefix + key
 
-    for j in dict_abuseipdb:
-        new_dict["abuseipdb_" + j] = dict_abuseipdb[j]
+        if prefixed_key not in new_dict:
+            new_dict[prefixed_key] = value
     
     return new_dict
 
@@ -102,7 +137,7 @@ class AbuseIPDBCommand(StreamingCommand):
     publiconly = Option(
         doc='''
             **Syntax:** **publiconly=***<bool>*
-            **Description:** Should only public IP be considered?''',
+            **Description:** Should only public IP be considered''',
         require=False, validate=validators.Boolean(), default=False)
     
     maxAgeInDays = Option(
@@ -220,7 +255,7 @@ class AbuseIPDBCommand(StreamingCommand):
         for data in response['data']:
             values.append({
                 'ip': data['ipAddress'],
-                'country': data['ipAddress'],
+                'country': data['countryCode'],
                 'abuseScore': data['abuseConfidenceScore'],
                 'lastReportedAt': data['lastReportedAt'],
             })
@@ -247,7 +282,7 @@ class AbuseIPDBCommand(StreamingCommand):
 
                 # If it is a "check an IP" call.
                 if self.mode == "check":
-                    data = self.check(event)
+                    data = _check_ensure_format(self.check(event))
 
                 data = data if isinstance(data, list) else [data]
 
