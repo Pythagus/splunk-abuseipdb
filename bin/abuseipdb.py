@@ -248,7 +248,7 @@ class AbuseIPDBCommand(StreamingCommand):
             'limit': self.limit,
             'onlyCountries': self.onlyCountries,
             'exceptCountries': self.exceptCountries,
-            'ipVersion': self.ipVersion,
+            'ipVersion': None if self.ipVersion == "mixed" else self.ipVersion,
         })
 
         values = []
