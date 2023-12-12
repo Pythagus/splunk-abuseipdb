@@ -33,3 +33,28 @@ export = system
 [viewstates]
 access = read : [ * ], write : [ * ]
 export = system
+
+
+# The following elements need to be exported for the AbuseIPDB command to work outside the app
+
+[commands/abuseipdb]
+export = system
+access = read : [ admin ], write : [ admin ]
+
+[abuseipdb]
+export = system
+access = read : [ admin ], write : [ admin ]
+
+[searchbnf/abuseipdb-command]
+export = system
+access = read : [ * ], write : [ admin ]
+
+[searchbnf/abuseipdb-options]
+export = system
+access = read : [ * ], write : [ admin ]
+
+# For accessing the API key in all Splunk apps.
+
+[passwords]
+access = read : [*], write : [admin]
+export = system
