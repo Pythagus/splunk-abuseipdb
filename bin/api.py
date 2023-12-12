@@ -25,6 +25,10 @@ class AbuseIPDBInvalidParameter(Exception): pass
 # an error when we called an endpoint.
 class AbuseIPDBError(Exception): pass
 
+# This exception is raised when AbuseIPDB API returned
+# an error when we called an endpoint.
+class AbuseIPDBMissingParameter(Exception): pass
+
 # Prepare the API to be used.
 def prepare(command):
     global API_KEY
@@ -40,11 +44,11 @@ def prepare(command):
     
 # This function returns the details response
 # provided by AbuseIPDB API
-def _get_http_response_details(json):
+def _get_http_response_details(json, key = 'detail'):
     details = "" 
         
     try:
-        details = str(json['errors'][0]['detail'])
+        details = str(json['errors'][0][key])
     except:
         details = str(json['errors'])
 
@@ -67,15 +71,10 @@ def api(endpoint, params):
 
     # As refered in https://docs.abuseipdb.com/#api-daily-rate-limits
     if response.status_code == 429:
-        try:
-            is_403 = json['errors'][0]['status'] == 403
-        except:
-            is_403 = False
-
         # In some cases, a 429 error is returned, but with
         # a different status code inside the error details.
         # So, we are managing the responses differently.
-        if is_403:
+        if int(_get_http_response_details(json, 'status')) == 403:
             raise AbuseIPDBError(_get_http_response_details(json))
         else:
             raise AbuseIPDBRateLimitReached()
@@ -88,7 +87,7 @@ def api(endpoint, params):
     # When a parameter is only available for paid AbuseIPDB
     # licence, an HTTP 402 response is returned.
     if response.status_code == 402:
-        raise AbuseIPDBError(_get_http_response_details(json))
+        raise AbuseIPDBInvalidParameter(_get_http_response_details(json))
     
     # If a parameter is invalid.
     if response.status_code == 422:

@@ -82,7 +82,7 @@ def _check_range(http_params):
     # If it is a network, we will generate new events
     # for each IP found in the network. The user will
     # be able to merge the data aggregating with the
-    # ipfield value.
+    # ip field value.
 
     # If there are data in the response, then
     # iterate on the result. Else, just return
@@ -128,11 +128,11 @@ class AbuseIPDBCommand(StreamingCommand):
             **Description:** Mode used to interact with AbuseIPDB API''',
         require=False, validate=validators.Set('check', 'blacklist', 'report'), default="check")
 
-    ipfield = Option(
+    ip = Option(
         doc='''
-            **Syntax:** **ipfield=***<fieldname>*
-            **Description:** Name of the field which contains the ip''',
-        require=False, validate=validators.Fieldname())
+            **Syntax:** **ip=***<str>*
+            **Description:** Field containing the IP address or the IP address itself''',
+        require=False)
     
     publiconly = Option(
         doc='''
@@ -202,22 +202,32 @@ class AbuseIPDBCommand(StreamingCommand):
     # given parameter is not None.
     def ensureParameter(self, param: str):
         if getattr(self, param) is None:
-            raise Exception("AbuseIPDB: field %s required (mode = %s)" % (param, self.mode))
+            raise abuseipdb.AbuseIPDBMissingParameter(param)
+
+    # Get a parameter from the event if it exists, or
+    # from the command otherwise.
+    def getParamValue(self, param: str, event = None):
+        self_value = getattr(self, param)
+
+        if event is not None and self_value in event:
+            return event[self_value]
+        
+        return self_value
 
     # Make an API call for checking a given
     # IP address. By the way, it could also
     # be a network range to be checked.
     def check(self, event):
         # First, ensure all the required parameters are given.
-        self.ensureParameter('ipfield')
+        self.ensureParameter('ip')
         self.ensureParameter('maxAgeInDays')
+
+        ip = self.getParamValue('ip', event)
 
         # If there is no IP field at this step, then
         # return an empty array <=> no data retrieved.
-        if not self.ipfield in event or event[self.ipfield] is None:
+        if ip is None:
             return {}
-        
-        ip = event[self.ipfield]
         
         # First, we check whether the IP is already in the
         # cache. If so, we don't need to make an API call.
@@ -283,7 +293,7 @@ class AbuseIPDBCommand(StreamingCommand):
     # Report a given IP address as malicious in AbuseIPDB API
     def report(self, event):
         # First, ensure all the required parameters are given.
-        self.ensureParameter('ipfield')
+        self.ensureParameter('ip')
         self.ensureParameter('categories')
         self.ensureParameter('comment')
 
@@ -293,10 +303,11 @@ class AbuseIPDBCommand(StreamingCommand):
 
         try:
             response = abuseipdb.api('report', {
-                'ip': event[self.ipfield],
-                'categories': self.categories,
-                'comment': self.comment,
+                'ip': self.getParamValue('ip', event),
+                'categories': self.getParamValue('categories', event),
+                'comment': self.getParamValue('comment', event),
             })
+
             json = response['data']
         except abuseipdb.AbuseIPDBError as e:
             error = str(e)
@@ -315,35 +326,56 @@ class AbuseIPDBCommand(StreamingCommand):
         if self.mode == "blacklist":
             events = [{}]
 
-        for event in events:
-            try:
-                data = list()
+        # This is testing whether an event is in Splunk's pipe.
+        # If not, we create an "empty" event, so that we can add
+        # the data we will found, and have it in Splunk. 
+        # 
+        # It is used by:
+        # - The "check" mode when it is put in top-level search
+        # - The "blacklist" mode
+        #
+        # This is the best work-around I found. Please, let me know
+        # if you found a better way to do it.
+        checked = False
+        while not checked:
+            for event in events:
+                checked = True
 
-                # If it is a "check an IP" call.
-                if self.mode == "check":
-                    data = _check_ensure_format(self.check(event))
-                elif self.mode == "blacklist":
-                    data = self.blacklist()
-                elif self.mode == "report":
-                    data = self.report(event)
+                try:
+                    data = list()
 
-                data = data if isinstance(data, list) else [data]
+                    # If it is a "check an IP" call.
+                    if self.mode == "check":
+                        data = _check_ensure_format(self.check(event))
+                    # If it is a "give me the most reported IP list"
+                    elif self.mode == "blacklist":
+                        data = self.blacklist()
+                    # If it is for reporting an IP address.
+                    elif self.mode == "report":
+                        data = self.report(event)
 
-                for arr in data:
-                    new_event = merge_dict(event, arr)
-                    yield new_event
-            except abuseipdb.AbuseIPDBRateLimitReached as e:
-                self.write_warning("AbuseIPDB API rate limit reached")
-                yield event
-            except abuseipdb.AbuseIPDBInvalidParameter as e:
-                self.write_warning(str(e))
-                yield event
-            except abuseipdb.AbuseIPDBError as e:
-                self.write_warning("AbuseIPDB error: %s" % str(e))
-                yield event
-            except Exception as e:
-                self.error_exit(None, str(e))
-                return
+                    # This is used to make the next for-loop working.
+                    data = data if isinstance(data, list) else [data]
+
+                    for arr in data:
+                        new_event = merge_dict(event, arr)
+                        yield new_event
+                except abuseipdb.AbuseIPDBRateLimitReached as e:
+                    self.write_warning("AbuseIPDB API rate limit reached")
+                    yield event
+                except abuseipdb.AbuseIPDBInvalidParameter as e:
+                    self.write_warning(str(e))
+                    yield event
+                except abuseipdb.AbuseIPDBError as e:
+                    self.write_warning("AbuseIPDB error: %s" % str(e))
+                    yield event
+                except abuseipdb.AbuseIPDBMissingParameter as e:
+                    self.error_exit(None, "AbuseIPDB: field '%s' required (mode = %s)" % (str(e), self.mode))
+                    yield event
+                except Exception as e:
+                    self.error_exit(None, str(e))
+                    return
+            events = [{}]
 
 
 # Finally, say to Splunk that this command exists.
