@@ -126,7 +126,7 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **mode=***<check|blacklist|report>*
             **Description:** Mode used to interact with AbuseIPDB API''',
-        require=False, validate=validators.Set('check', 'blacklist', 'report'), default="check")
+        require=False, validate=validators.Set('check', 'blacklist', 'report', 'reports'), default="check")
 
     ip = Option(
         doc='''
@@ -156,7 +156,7 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **limit=***<integer>*
             **Description:** maximum number of IP to get''',
-        require=False, validate=validators.Integer(1), default=10000)
+        require=False, validate=validators.Integer(1), default=100)
     
     ipVersion = Option(
         doc='''
@@ -317,6 +317,47 @@ class AbuseIPDBCommand(StreamingCommand):
             'status': 'success' if error is None else 'failure',
             'error': error,
         }
+
+    # Get a list of the reports regarding a given IP address.
+    def reports(self, event):
+        # First, ensure all the required parameters are given.
+        self.ensureParameter('ip')
+        ip = self.getParamValue('ip', event)
+
+        limit = self.getParamValue('limit', event)
+        nbr_retrieved = 0
+        current_page = 1
+        data = []
+
+        while nbr_retrieved < limit:
+            response = abuseipdb.api('reports', {
+                'ipAddress': ip,
+                'maxAgeInDays': self.getParamValue('maxAgeInDays', event),
+                'perPage': min(limit - nbr_retrieved, 100),
+                'page': current_page,
+            })
+
+            json = response['data']
+
+            for report in json['results']:
+                data.append({
+                    'ip': ip,
+                    'reportedAt': report['reportedAt'],
+                    'comment': report['comment'],
+                    'categories': ",".join(str(x) for x in report['categories'])
+                })
+
+            # Move to the next page.
+            current_page += 1
+
+            # Add the number of retrieved reports to the current variable.
+            nbr_retrieved += json['count']
+
+            # If the current page is the last one, then stop the loop.
+            if json['lastPage'] == json['page']:
+                break
+
+        return data
         
     # This is the method treating all the events.
     def stream(self, events):
@@ -353,6 +394,9 @@ class AbuseIPDBCommand(StreamingCommand):
                     # If it is for reporting an IP address.
                     elif self.mode == "report":
                         data = self.report(event)
+                    # If it is for getting the reports of a given IP
+                    elif self.mode == "reports":
+                        data = self.reports(event)
 
                     # This is used to make the next for-loop working.
                     data = data if isinstance(data, list) else [data]

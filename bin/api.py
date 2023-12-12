@@ -11,6 +11,7 @@ ACTIONS = {
     'check': 'get',
     'check-block': 'get',
     'report': 'post',
+    'reports': 'get',
 }
 
 # This exception is raised when the API reached its limit.
