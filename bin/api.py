@@ -14,14 +14,16 @@ ACTIONS = {
 }
 
 # This exception is raised when the API reached its limit.
-class AbuseIPDBRateLimitReached(Exception):
-    pass
+class AbuseIPDBRateLimitReached(Exception): pass
 
 # This exception is raised when an invalid parameter was
 # given to the AbuseIPDB API. This should not stop the
 # process.
-class AbuseIPDBInvalidParameter(Exception):
-    pass
+class AbuseIPDBInvalidParameter(Exception): pass
+
+# This exception is raised when AbuseIPDB API returned
+# an error when we called an endpoint.
+class AbuseIPDBError(Exception): pass
 
 # Prepare the API to be used.
 def prepare(command):
@@ -65,24 +67,35 @@ def api(endpoint, params):
 
     # As refered in https://docs.abuseipdb.com/#api-daily-rate-limits
     if response.status_code == 429:
-        raise AbuseIPDBRateLimitReached()
+        try:
+            is_403 = json['errors'][0]['status'] == 403
+        except:
+            is_403 = False
+
+        # In some cases, a 429 error is returned, but with
+        # a different status code inside the error details.
+        # So, we are managing the responses differently.
+        if is_403:
+            raise AbuseIPDBError(_get_http_response_details(json))
+        else:
+            raise AbuseIPDBRateLimitReached()
     
     # When testing, this code is returned for when no token
     # is provided, or if the provided one is invalid.
     if response.status_code == 401:
-        raise Exception("Invalid AbuseIPDB token given.")
+        raise AbuseIPDBError("Invalid AbuseIPDB token given.")
     
     # When a parameter is only available for paid AbuseIPDB
     # licence, an HTTP 402 response is returned.
     if response.status_code == 402:
-        raise Exception("AbuseIPDB error: %s" % _get_http_response_details(json))
+        raise AbuseIPDBError(_get_http_response_details(json))
     
     # If a parameter is invalid.
     if response.status_code == 422:
-        raise Exception("AbuseIPDB error: %s" % _get_http_response_details(json))
+        raise AbuseIPDBError(_get_http_response_details(json))
     
     # If the response is not succesful
     if response.status_code != 200:
-        raise Exception("Got status code %d from AbuseIPDB API." % response.status_code)
+        raise AbuseIPDBError("Got status code %d" % response.status_code)
     
     return json

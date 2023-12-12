@@ -124,9 +124,9 @@ class AbuseIPDBCommand(StreamingCommand):
 
     mode = Option(
         doc='''
-            **Syntax:** **mode=***<check|blacklist>*
+            **Syntax:** **mode=***<check|blacklist|report>*
             **Description:** Mode used to interact with AbuseIPDB API''',
-        require=False, validate=validators.Set('check', 'blacklist'), default="check")
+        require=False, validate=validators.Set('check', 'blacklist', 'report'), default="check")
 
     ipfield = Option(
         doc='''
@@ -156,7 +156,7 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **limit=***<integer>*
             **Description:** maximum number of IP to get''',
-        require=False, validate=validators.Integer(1))
+        require=False, validate=validators.Integer(1), default=10000)
     
     ipVersion = Option(
         doc='''
@@ -168,12 +168,24 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **onlyCountries=***<string>*
             **Description:** get the IP addresses of a specific country (separated by comma)''',
-        require=False)
+        require=False, default=None)
     
     exceptCountries = Option(
         doc='''
             **Syntax:** **exceptCountries=***<string>*
             **Description:** remove specific countries from the blacklisted IP addresses list (separated by comma)''',
+        require=False, default=None)
+    
+    categories = Option(
+        doc='''
+            **Syntax:** **categories=***<string>*
+            **Description:** malicious pattern categories (separated by comma)''',
+        require=False)
+    
+    comment = Option(
+        doc='''
+            **Syntax:** **comment=***<string>*
+            **Description:** malicious actiivty comment''',
         require=False)     
 
     # This method is called by splunkd before the
@@ -190,7 +202,7 @@ class AbuseIPDBCommand(StreamingCommand):
     # given parameter is not None.
     def ensureParameter(self, param: str):
         if getattr(self, param) is None:
-            raise Exception("AbuseIPDB: %s is required (mode = %s)" % (param, self.mode))
+            raise Exception("AbuseIPDB: field %s required (mode = %s)" % (param, self.mode))
 
     # Make an API call for checking a given
     # IP address. By the way, it could also
@@ -241,7 +253,13 @@ class AbuseIPDBCommand(StreamingCommand):
             'maxAgeInDays': self.maxAgeInDays
         })
     
+    # Get all the IP known for abusive behavior.
     def blacklist(self):
+        # First, ensure all the required parameters are given.
+        self.ensureParameter('confidence')
+        self.ensureParameter('limit')
+        self.ensureParameter('ipVersion')
+
         # Let's make an HTTP request!
         response = abuseipdb.api('blacklist', {
             'confidenceMinimum': self.confidence,
@@ -261,20 +279,41 @@ class AbuseIPDBCommand(StreamingCommand):
             })
 
         return values
+    
+    # Report a given IP address as malicious in AbuseIPDB API
+    def report(self, event):
+        # First, ensure all the required parameters are given.
+        self.ensureParameter('ipfield')
+        self.ensureParameter('categories')
+        self.ensureParameter('comment')
+
+        # Let's make an HTTP request!
+        error = None
+        json = {}
+
+        try:
+            response = abuseipdb.api('report', {
+                'ip': event[self.ipfield],
+                'categories': self.categories,
+                'comment': self.comment,
+            })
+            json = response['data']
+        except abuseipdb.AbuseIPDBError as e:
+            error = str(e)
+
+        return {
+            'abuseScore': json['abuseConfidenceScore'] if 'abuseConfidenceScore' in json else None,
+            'status': 'success' if error is None else 'failure',
+            'error': error,
+        }
         
     # This is the method treating all the events.
     def stream(self, events):
+        # If this is a blacklist call, then we
+        # remove all previous events, and put a
+        # single empty event.
         if self.mode == "blacklist":
-            try:
-                for event in self.blacklist():
-                    yield event
-            except abuseipdb.AbuseIPDBRateLimitReached as e:
-                self.write_warning("AbuseIPDB API rate limit reached")
-            except abuseipdb.AbuseIPDBInvalidParameter as e:
-                self.write_warning(str(e))
-            except Exception as e:
-                self.error_exit(None, str(e))
-            return
+            events = [{}]
 
         for event in events:
             try:
@@ -283,6 +322,10 @@ class AbuseIPDBCommand(StreamingCommand):
                 # If it is a "check an IP" call.
                 if self.mode == "check":
                     data = _check_ensure_format(self.check(event))
+                elif self.mode == "blacklist":
+                    data = self.blacklist()
+                elif self.mode == "report":
+                    data = self.report(event)
 
                 data = data if isinstance(data, list) else [data]
 
@@ -294,6 +337,9 @@ class AbuseIPDBCommand(StreamingCommand):
                 yield event
             except abuseipdb.AbuseIPDBInvalidParameter as e:
                 self.write_warning(str(e))
+                yield event
+            except abuseipdb.AbuseIPDBError as e:
+                self.write_warning("AbuseIPDB error: %s" % str(e))
                 yield event
             except Exception as e:
                 self.error_exit(None, str(e))
