@@ -2,31 +2,7 @@
 # Application-level permissions
 
 []
-access = read : [ * ], write : [ admin, power ]
-
-### EVENT TYPES
-
-[eventtypes]
-export = system
-
-
-### PROPS
-
-[props]
-export = system
-
-
-### TRANSFORMS
-
-[transforms]
-export = system
-
-
-### LOOKUPS
-
-[lookups]
-export = system
-
+access = read : [ * ], write : [ admin, sc_admin ]
 
 ### VIEWSTATES: even normal users should be able to create shared viewstates
 
@@ -34,27 +10,36 @@ export = system
 access = read : [ * ], write : [ * ]
 export = system
 
+# The following elements define how the lookups are exportable.
+
+[lookups/AbuseIPDB_Categories.csv]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+[transforms/AbuseIPDB_Categories]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
 
 # The following elements need to be exported for the AbuseIPDB command to work outside the app
 
 [commands/abuseipdb]
 export = system
-access = read : [ admin ], write : [ admin ]
+access = read : [ admin, sc_admin ], write : [ admin, sc_admin ]
 
 [abuseipdb]
 export = system
-access = read : [ admin ], write : [ admin ]
+access = read : [ admin, sc_admin ], write : [ admin, sc_admin ]
 
 [searchbnf/abuseipdb-command]
 export = system
-access = read : [ * ], write : [ admin ]
+access = read : [ * ], write : [ admin, sc_admin ]
 
 [searchbnf/abuseipdb-options]
 export = system
-access = read : [ * ], write : [ admin ]
+access = read : [ * ], write : [ admin, sc_admin ]
 
 # For accessing the API key in all Splunk apps.
 
 [passwords]
-access = read : [*], write : [admin]
+access = read : [ * ], write : [ admin, sc_admin ]
 export = system
