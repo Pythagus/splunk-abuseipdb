@@ -140,9 +140,9 @@ class AbuseIPDBCommand(StreamingCommand):
             **Description:** Should only public IP be considered''',
         require=False, validate=validators.Boolean(), default=False)
     
-    maxAgeInDays = Option(
+    age = Option(
         doc='''
-            **Syntax:** **maxAgeInDays=***<integer>*
+            **Syntax:** **age=***<integer>*
             **Description:** number of days for the oldest report''',
         require=False, validate=validators.Integer(1), default=30)
 
@@ -220,7 +220,7 @@ class AbuseIPDBCommand(StreamingCommand):
     def check(self, event):
         # First, ensure all the required parameters are given.
         self.ensureParameter('ip')
-        self.ensureParameter('maxAgeInDays')
+        self.ensureParameter('age')
 
         ip = self.getParamValue('ip', event)
 
@@ -247,7 +247,7 @@ class AbuseIPDBCommand(StreamingCommand):
             
             return _check_range({
                 'network': ip,
-                'maxAgeInDays': self.maxAgeInDays
+                'maxAgeInDays': self.age
             })
         
         # If the "public only" flag is set, and the IP is private,
@@ -260,7 +260,7 @@ class AbuseIPDBCommand(StreamingCommand):
 
         return _check_ip({
             'ipAddress': ip,
-            'maxAgeInDays': self.maxAgeInDays
+            'maxAgeInDays': self.age
         })
     
     # Get all the IP known for abusive behavior.
@@ -332,7 +332,7 @@ class AbuseIPDBCommand(StreamingCommand):
         while nbr_retrieved < limit:
             response = abuseipdb.api('reports', {
                 'ipAddress': ip,
-                'maxAgeInDays': self.getParamValue('maxAgeInDays', event),
+                'maxAgeInDays': self.getParamValue('age', event),
                 'perPage': min(limit - nbr_retrieved, 100),
                 'page': current_page,
             })
