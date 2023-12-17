@@ -144,7 +144,7 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **age=***<integer>*
             **Description:** number of days for the oldest report''',
-        require=False, validate=validators.Integer(1), default=30)
+        require=False, validate=validators.Integer(minimum=1, maximum=365), default=30)
 
     confidence = Option(
         doc='''
