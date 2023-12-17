@@ -1,0 +1,125 @@
+<dashboard version="1.1" isDashboard="false">
+    <label>README</label>
+    <description>This guides you on how to use this AbuseIPDB app for interacting with the API.</description>
+    <row>
+        <panel>
+            <html>
+                <div class="container py-5">
+                <!-- RADME.md converted using https://markdowntohtml.com/ -->
+<h1 id="splunk-app-for-abuseipdb">Splunk app for AbuseIPDB</h1>
+<p>This app was developed by <a href="https://www.linkedin.com/in/d-molina/">Damien Molina</a>. I was trying to use AbuseIPDB public API with Splunk Enterprise, but none of the available applications were doing what I wanted to do, even the official one. So, here it is!</p>
+<ul>
+<li><a href="#how-to-use">How to use</a><ul>
+<li><a href="#command-check"><code>check</code> command</a></li>
+<li><a href="#command-report"><code>report</code> command</a></li>
+<li><a href="#command-reports"><code>reports</code> command</a></li>
+<li><a href="#command-blacklist"><code>blacklist</code> command</a></li>
+</ul>
+</li>
+<li><a href="#updates">Updates</a></li>
+<li><a href="#the-end">About this app</a></li>
+</ul>
+<h1 id="-a-id-how-to-use-a-how-to-use-it"><a id="how-to-use">#</a> How to use it</h1>
+<p>First thing, here is an exhaustive list of the possible commands this app is supporting.</p>
+<p>You can tell the <code>abuseipdb</code> command what to do using the <code>mode</code> option like <code>| abuseipdb mode=report</code>.</p>
+<p><strong>Note:</strong> default mode is <code>check</code></p>
+<p><br></p>
+<h2 id="-a-id-command-check-a-check-check-an-ip-abuse-score"><a id="command-check">#</a> Check - Check an IP abuse score</h2>
+<p>This command retrieves the abuse confidence score of a given IP address.
+If the command passes, new fields will be added to every events.</p>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><strong>mode=check</strong>: The command mode for checking an IP.</li>
+<li><strong>ip</strong>: An explicit IP address, or a Splunk field name containing the IP.</li>
+<li><strong>age</strong>: <em>(optional)</em> Time range to check the IP on. Integer between <code>1</code> and <code>365</code>, default is <code>30</code>.</li>
+<li><strong>publiconly</strong>: <em>(optional)</em> A boolean to only check public IP addresses for saving some API calls. Default is <code>False</code>.</li>
+</ul>
+<h3 id="examples">Examples</h3>
+<p>In the middle of a search:</p>
+<pre><code>... | abuseipdb mode=check ip=ip | ...
+</code></pre><p>Copy-paste example: (ip option as a field-name)</p>
+<pre><code><span class="hljs-string">| makeresults</span>
+<span class="hljs-string">| eval ip_in_event = "</span><span class="hljs-number">64.62</span>.<span class="hljs-number">197.152</span><span class="hljs-string">" </span>
+<span class="hljs-string">| abuseipdb mode=check ip=ip_in_event</span>
+</code></pre><p>That could also have been replaced with: <em>(ip option as a string)</em></p>
+<pre><code><span class="hljs-string">| abuseipdb mode=check ip="</span><span class="hljs-number">64.62</span>.<span class="hljs-number">197.152</span><span class="hljs-string">"</span>
+<span class="hljs-string">| table *</span>
+</code></pre><p><strong>Note:</strong> You can either pass an IP address (like 127.0.0.1) or a network range (like 192.168.0.0/24) to this command. With a range:</p>
+<pre><code>| makeresults
+| eval <span class="hljs-attr">range</span> = <span class="hljs-string">"64.62.197.152/30"</span> 
+| abuseipdb <span class="hljs-attr">mode=check</span> <span class="hljs-attr">ip=range</span> <span class="hljs-attr">age=10</span>
+</code></pre><p><br></p>
+<h2 id="-a-id-command-report-a-report-report-an-ip-for-abusive-behavior"><a id="command-report">#</a> Report - Report an IP for abusive behavior</h2>
+<p>This command reports the given IP address for abusive behavior.</p>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><strong>mode=report</strong>: The command mode for reporting an IP.</li>
+<li><strong>ip</strong>: An explicit IP address, or a Splunk field name containing the IP.</li>
+<li><strong>categories</strong>: The abusive categories the IP is matching (separated by comma), as described in <a href="https://www.abuseipdb.com/categories">AbuseIPDB documentation</a>.</li>
+<li><strong>comment</strong>: A descriptive text of the attack i.e. server logs, port numbers, etc.</li>
+</ul>
+<h3 id="examples">Examples</h3>
+<h4 id="in-the-middle-of-a-search">In the middle of a search</h4>
+<pre><code>... | abuseipdb mode=report ip=ip category=<span class="hljs-string">"1,3"</span> comment=<span class="hljs-string">"XSS attempts"</span> | ...
+</code></pre><p>Copy-paste example:</p>
+<pre><code>| makeresults
+| eval <span class="hljs-attr">ip_in_event</span> = <span class="hljs-string">"127.0.0.2"</span> 
+| abuseipdb <span class="hljs-attr">mode=report</span> <span class="hljs-attr">ip=ip_in_event</span> <span class="hljs-attr">categories=2</span> <span class="hljs-attr">comment="For</span> a test<span class="hljs-string">"</span>
+</code></pre><p>But all parameters can be passed from the event:</p>
+<pre><code>| makeresults
+| eval <span class="hljs-attr">ip_in_event</span> = <span class="hljs-string">"127.0.0.2"</span>, <span class="hljs-attr">categories</span> = <span class="hljs-string">"1,3"</span>, <span class="hljs-attr">comment</span> = <span class="hljs-string">"For testing purpose"</span>
+| abuseipdb <span class="hljs-attr">mode=report</span> <span class="hljs-attr">ip=ip_in_event</span> <span class="hljs-attr">categories=categories</span> <span class="hljs-attr">comment=comment</span>
+</code></pre><p><strong>Note::</strong> be sure to not send any personally identifiable message in the <code>comment</code> field.</p>
+<p><br></p>
+<h2 id="-a-id-command-reports-a-reports-see-reports-of-a-given-ip"><a id="command-reports">#</a> Reports - See reports of a given IP</h2>
+<p>This command gathers all reports sent regarding a given IP address.</p>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><strong>mode=reports</strong>: The command mode for getting the reports an IP</li>
+<li><strong>ip</strong>: An explicit IP address, or a Splunk field name containing the IP</li>
+<li><strong>age</strong>: <em>(optional)</em> Time range to check the IP on. Integer between <code>1</code> and <code>365</code>, default is <code>30</code>.</li>
+</ul>
+<h3 id="examples">Examples</h3>
+<p>This search must be used on the top-level search.</p>
+<pre><code><span class="hljs-string">| abuseipdb mode=reports ip="</span><span class="hljs-number">64.62</span>.<span class="hljs-number">197.152</span><span class="hljs-string">"</span>
+<span class="hljs-string">| table *</span>
+</code></pre><p>Example with the categories:</p>
+<pre><code>| <span class="hljs-type">abuseipdb</span> mode=reports ip=<span class="hljs-string">"64.62.197.152"</span> age=<span class="hljs-number">10</span>
+| <span class="hljs-type">table</span> *
+| <span class="hljs-type">makemv</span> delim=<span class="hljs-string">","</span> abuseipdb_categories 
+| <span class="hljs-type">lookup</span> AbuseIPDB_Categories id <span class="hljs-built_in">as</span> abuseipdb_categories
+</code></pre><p><br></p>
+<h2 id="-a-id-command-blacklist-a-blacklist-get-all-ip-with-a-confidence-score"><a id="command-blacklist">#</a> Blacklist - Get all IP with a confidence score</h2>
+<p>This command gets all the IP addresses with a specific confidence score and upper.</p>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><strong>mode=blacklist</strong>: The command mode for getting a list of the most abusive IP addresses.</li>
+<li><strong>confidence</strong>: The minimum confidence score to request (integer between 1 and 100).</li>
+<li><strong>limit</strong>: <em>(optional)</em> The maximum number of requests to request to the API. Default: <code>100</code>.</li>
+<li><strong>ipVersion</strong>: <em>(optional)</em> What IP versions should only be requested. Possible values: <code>4</code>, <code>6</code> or <code>mixed</code> (both 4 and 6). Default: <code>mixed</code>.</li>
+<li><strong>onlyCountries</strong>: <em>(optional)</em> Specific countries to request only, separated by comma.</li>
+<li><strong>exceptCountries</strong>: <em>(optional)</em> Remove some countries from the API request, separated by comma.</li>
+</ul>
+<p><strong>Note:</strong> the number of returned results mainly depends on your subscription. See AbuseIPDB website to have more details.</p>
+<h3 id="examples">Examples</h3>
+<p>For example, if you want to get all IP addresses with at least 90% of abuse confidence score: (90% and higher)</p>
+<pre><code><span class="hljs-string">| abuseipdb mode=blacklist confidence=90</span>
+<span class="hljs-string">| table *</span>
+</code></pre><h1 id="-a-id-updates-a-updates"><a id="updates">#</a> Updates</h1>
+<p>This section focuses on updating the application.</p>
+<h2 id="-a-id-update-lookup-a-update-the-abuseipdb_categories-lookup"><a id="update-lookup">#</a> Update the AbuseIPDB_Categories lookup</h2>
+<p>I didn&#39;t find a &quot;programmatic&quot; way to update the lookup, as AbuseIPDB is only giving an HTML array... So, the best way I found for now is to use the following <code>JavaScript</code> code in the </p>
+<pre><code class="lang-js"><span class="hljs-selector-tag">var</span> categories = <span class="hljs-string">"\n"</span>
+document.querySelectorAll(<span class="hljs-string">'table tbody tr'</span>).forEach(function(tr) {
+    <span class="hljs-selector-tag">var</span> <span class="hljs-selector-tag">td</span> = <span class="hljs-selector-tag">tr</span>.querySelectorAll(<span class="hljs-string">'td'</span>)
+    categories +=  <span class="hljs-selector-tag">td</span>[<span class="hljs-number">0</span>]<span class="hljs-selector-class">.innerText</span> + <span class="hljs-string">',"'</span> + <span class="hljs-selector-tag">td</span>[<span class="hljs-number">1</span>]<span class="hljs-selector-class">.innerText</span> + <span class="hljs-string">'","'</span> + <span class="hljs-selector-tag">td</span>[<span class="hljs-number">2</span>]<span class="hljs-selector-class">.innerText</span> + <span class="hljs-string">'"'</span> + <span class="hljs-string">"\n"</span>
+})
+</code></pre>
+<h1 id="about-this-app-a-id-the-end-a-">About this app <a id="the-end"></a></h1>
+<p>You are welcome to contribute to this app by submitting a pull request. I will be very glad to improve this app!</p>
+
+                </div>
+            </html>
+        </panel>
+    </row>
+</dashboard>

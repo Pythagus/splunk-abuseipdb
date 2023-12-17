@@ -4,11 +4,11 @@
 []
 access = read : [ * ], write : [ admin, sc_admin ]
 
-### VIEWSTATES: even normal users should be able to create shared viewstates
+### The following elements define the views given by the app to the users.
 
-[viewstates]
-access = read : [ * ], write : [ * ]
-export = system
+[views/readme]
+owner = nobody
+access = read : [ * ], write : [ admin, sc_admin ]
 
 # The following elements define how the lookups are exportable.
 
