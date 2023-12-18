@@ -50,3 +50,10 @@ export = system
 [alert_actions]
 export = system
 access = read : [ * ], write : [ admin, sc_admin ]
+
+# For accessing the dashboards only in the app.
+
+[views/abuseipdb__alert_action]
+owner = nobody
+export = none
+access = read : [ * ], write : [ admin, sc_admin ]

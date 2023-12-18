@@ -1,0 +1,36 @@
+<form version="1.1">
+  <label>AbuseIPDB - Alert Action</label>
+  <fieldset submitButton="false">
+    <input type="time" token="timerange" searchWhenChanged="true">
+      <label>Time range</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <search>
+          <query>index=_internal sourcetype="splunkd" action="abuseipdb_report_alertaction" abuseipdb_report_alertaction
+| eval error = if(log_level="ERROR", trim(replace(event_message, "action=abuseipdb_report_alertaction STDERR -", "")), null()), search_name = if(log_level="INFO", search, null())
+| stats earliest(_time) as startedAt, latest(_time) as endedAt, values(log_level) as log_level, values(type) as type, values(search_name) as search_name, values(error) as errors, values(code) as code, values(duration) as duration by thread_id
+| fields - thread_id
+| eval startedAt = strftime(startedAt, "%Y-%m-%d %H:%M:%S"), endedAt = strftime(endedAt, "%Y-%m-%d %H:%M:%S"), log_level = if(like(log_level, "%ERROR%"), "ERROR", "INFO")
+| sort - startedAt</query>
+          <earliest>$timerange.earliest$</earliest>
+          <latest>$timerange.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="log_level">
+          <colorPalette type="map">{"INFO":#2EA39B,"ERROR":#D41F1F}</colorPalette>
+        </format>
+        <format type="color" field="code">
+          <colorPalette type="list">[#118832,#D41F1F]</colorPalette>
+          <scale type="threshold">1</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
