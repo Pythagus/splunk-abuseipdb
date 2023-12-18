@@ -3,8 +3,9 @@
 
 []
 access = read : [ * ], write : [ admin, sc_admin ]
+export = system
 
-### The following elements define the views given by the app to the users.
+# The following elements define the views given by the app to the users.
 
 [views/readme]
 owner = nobody
@@ -43,3 +44,9 @@ access = read : [ * ], write : [ admin, sc_admin ]
 [passwords]
 access = read : [ * ], write : [ admin, sc_admin ]
 export = system
+
+# For enabling alert actions on all applications.
+
+[alert_actions]
+export = system
+access = read : [ * ], write : [ admin, sc_admin ]
