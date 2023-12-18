@@ -5,6 +5,11 @@
 access = read : [ * ], write : [ admin, sc_admin ]
 export = system
 
+[nav/default]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = none
+owner = nobody
+
 # The following elements define the views given by the app to the users.
 
 [views/readme]

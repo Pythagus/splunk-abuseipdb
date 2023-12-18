@@ -2,6 +2,5 @@
     <view name="search" default="true" />
     <view name="readme" default="true" />
     <view name="setup_dashboard" />
-    <view name="reports" />
     <view name="dashboards" />
 </nav>
