@@ -30,18 +30,31 @@ class AbuseIPDBError(Exception): pass
 # an error when we called an endpoint.
 class AbuseIPDBMissingParameter(Exception): pass
 
+# Get the key from the given service for
+# the given app.
+def load_api_key(service, app):
+    global API_KEY
+    
+    key = None
+
+    for passwd in service.storage_passwords:
+        if passwd.username == app and (passwd.realm is None or passwd.realm.strip() == ""):
+            key = passwd.clear_password
+
+            if key == "defaults_empty":
+                key = None
+
+    API_KEY = key
+
 # Prepare the API to be used.
 def prepare(command):
-    global API_KEY
-
     # Get the API key.
-    for passwd in command.service.storage_passwords:
-        if passwd.username == "abuseipdb" and (passwd.realm is None or passwd.realm.strip() == ""):
-            API_KEY = passwd.clear_password
+    load_api_key(service=command.service, app="abuseipdb")
 
     # Check whether the API key was retrieved.
-    if API_KEY is None or API_KEY == "defaults_empty":
-        command.error_exit(None, "No API key found for AbuseIPDB. Re-run the app setup.")
+    if API_KEY is None:
+        command.write_error(None, "No API key found for AbuseIPDB. Re-run the app setup.")
+        exit(1)
     
 # This function returns the details response
 # provided by AbuseIPDB API
