@@ -12,10 +12,14 @@ import splunklib.client as client
 # Possible error codes generated.
 ERR_UNKNOWN_EXCEPTION = 1
 ERR_API_LIMIT_REACHED = 2
+ERR_API_ERROR = 3
 
 # Log an error message.
 def log(message):
+    # Print the message, so that Splunk gets it in the _internal sourcetype.
     print(message)
+
+    # And then add it in a file.
     file = open("log/alertaction.log", "a")
     file.write(message + "\n")
     file.close()
@@ -81,15 +85,19 @@ if __name__ == "__main__":
 
         # For each event, report the associated IP.
         for line in results:
+            error = None
+
             try:
                 abuseipdb.api('report', {
                     'ip': line[ipfield_idx] if ipfield_idx is not None else ipfield,
                     'comment': line[comment_idx] if comment_idx is not None else comment,
                     'categories': line[categories_idx] if categories_idx is not None else categories,
                 })
-            except abuseipdb.AbuseIPDBError: pass
             except abuseipdb.AbuseIPDBInvalidParameter: pass
             except abuseipdb.AbuseIPDBMissingParameter: pass
+            except abuseipdb.AbuseIPDBError as e:
+                log(str(e))
+                exit(ERR_API_ERROR)
             except abuseipdb.AbuseIPDBRateLimitReached as e:
                 log("API limit reached")
                 exit(ERR_API_LIMIT_REACHED)
