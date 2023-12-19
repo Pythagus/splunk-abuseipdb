@@ -138,7 +138,7 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **publiconly=***<bool>*
             **Description:** Should only public IP be considered''',
-        require=False, validate=validators.Boolean(), default=False)
+        require=False, validate=validators.Boolean(), default=True)
     
     age = Option(
         doc='''
