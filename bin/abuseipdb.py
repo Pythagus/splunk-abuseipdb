@@ -27,7 +27,7 @@ def _check_ensure_format(data):
     return merge_dict(data, {
         "ip": None,
         "type": None,
-        "score": None,
+        "abuseScore": None,
         "usage": None,
         "country": None,
         "company": None,
@@ -51,7 +51,7 @@ def _check_ip(http_params):
     data = {
         "ip": ip,
         "type": 'Public' if json['isPublic'] else 'Private',
-        "score": json['abuseConfidenceScore'],
+        "abuseScore": json['abuseConfidenceScore'],
         "usage": json['usageType'],
         "company": json['isp'],
         "country": json['countryCode'],
@@ -96,7 +96,7 @@ def _check_range(http_params):
                 "ip": values['ipAddress'],
                 "nbrReports": values['numReports'],
                 "lastReported": values['mostRecentReport'],
-                "score": values['abuseConfidenceScore'],
+                "abuseScore": values['abuseConfidenceScore'],
                 "country": values['countryCode'],
             })
     else: 
