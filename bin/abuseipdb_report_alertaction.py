@@ -87,11 +87,16 @@ if __name__ == "__main__":
         for line in results:
             error = None
 
+            final_categories = []
+            arr = str(line[categories_idx] if categories_idx is not None else categories).split(',')
+            for cat in arr:
+                final_categories.append(abuseipdb.Categories.get_id(cat, default=cat))
+
             try:
                 abuseipdb.api('report', {
                     'ip': line[ipfield_idx] if ipfield_idx is not None else ipfield,
                     'comment': line[comment_idx] if comment_idx is not None else comment,
-                    'categories': line[categories_idx] if categories_idx is not None else categories,
+                    'categories': ",".join(final_categories),
                 })
             except abuseipdb.AbuseIPDBInvalidParameter: pass
             except abuseipdb.AbuseIPDBMissingParameter: pass

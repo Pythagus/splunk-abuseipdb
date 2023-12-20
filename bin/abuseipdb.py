@@ -301,10 +301,15 @@ class AbuseIPDBCommand(StreamingCommand):
         error = None
         json = {}
 
+        # Convert the categories.
+        categories = []
+        for category in self.getParamValue('categories', event).split(','):
+            categories.append(abuseipdb.Categories.get_id(category, default=category))
+
         try:
             response = abuseipdb.api('report', {
                 'ip': self.getParamValue('ip', event),
-                'categories': self.getParamValue('categories', event),
+                'categories': ",".join(categories),
                 'comment': self.getParamValue('comment', event),
             })
 
@@ -340,11 +345,16 @@ class AbuseIPDBCommand(StreamingCommand):
             json = response['data']
 
             for report in json['results']:
+                categories = []
+
+                for id in report['categories']:
+                    categories.append(abuseipdb.Categories.get_category(id, default=id))
+
                 data.append({
                     'ip': ip,
                     'reportedAt': report['reportedAt'],
                     'comment': report['comment'],
-                    'categories': ",".join(str(x) for x in report['categories'])
+                    'categories': categories
                 })
 
             # Move to the next page.

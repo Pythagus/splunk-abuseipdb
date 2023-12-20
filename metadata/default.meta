@@ -16,16 +16,6 @@ owner = nobody
 owner = nobody
 access = read : [ * ], write : [ admin, sc_admin ]
 
-# The following elements define how the lookups are exportable.
-
-[lookups/AbuseIPDB_Categories.csv]
-access = read : [ * ], write : [ admin, sc_admin ]
-export = system
-
-[transforms/AbuseIPDB_Categories]
-access = read : [ * ], write : [ admin, sc_admin ]
-export = system
-
 # The following elements need to be exported for the AbuseIPDB command to work outside the app
 
 [commands/abuseipdb]
