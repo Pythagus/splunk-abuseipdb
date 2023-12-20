@@ -5,6 +5,34 @@ import requests
 # The API key used to authenticate to AbuseIPDB API.
 API_KEY = None
 
+# This is the list of allowed categories, as
+# described in https://www.abuseipdb.com/categories.
+_CATEGORIES = {
+    "1": "DNS Compromise",
+    "2": "DNS Poisoning",
+    "3": "Fraud Orders",
+    "4": "DDoS Attack",
+    "5": "FTP Brute-Force",
+    "6": "Ping of Death",
+    "7": "Phishing",
+    "8": "Fraud VoIP",
+    "9": "Open Proxy",
+    "10": "Web Spam",
+    "11": "Email Spam",
+    "12": "Blog Spam",
+    "13": "VPN IP",
+    "14": "Port Scan",
+    "15": "Hacking",
+    "16": "SQL Injection",
+    "17": "Spoofing",
+    "18": "Brute-Force",
+    "19": "Bad Web Bot",
+    "20": "Exploited Host",
+    "21": "Web App Attack",
+    "22": "SSH",
+    "23": "IoT Targeted",
+}
+
 # The possible actions that this API supports.
 ACTIONS = {
     'blacklist': 'get',
@@ -113,41 +141,15 @@ def api(endpoint, params):
     
     return json
 
+# This class is helpful to convert a given id
+# or category to the other.
 class Categories:
-
-    # This is the list of allowed categories, as
-    # described in https://www.abuseipdb.com/categories.
-    VALUES = {
-        "1": "DNS Compromise",
-        "2": "DNS Poisoning",
-        "3": "Fraud Orders",
-        "4": "DDoS Attack",
-        "5": "FTP Brute-Force",
-        "6": "Ping of Death",
-        "7": "Phishing",
-        "8": "Fraud VoIP",
-        "9": "Open Proxy",
-        "10": "Web Spam",
-        "11": "Email Spam",
-        "12": "Blog Spam",
-        "13": "VPN IP",
-        "14": "Port Scan",
-        "15": "Hacking",
-        "16": "SQL Injection",
-        "17": "Spoofing",
-        "18": "Brute-Force",
-        "19": "Bad Web Bot",
-        "20": "Exploited Host",
-        "21": "Web App Attack",
-        "22": "SSH",
-        "23": "IoT Targeted",
-    }
 
     # Get the id behind the given category.
     def get_id(category, default = None):
         category = str(category).strip()
-        values = list(Categories.VALUES.values())
-        keys = list(Categories.VALUES.keys())
+        values = list(_CATEGORIES.values())
+        keys = list(_CATEGORIES.keys())
 
         if category in values:
             return keys[values.index(category)]
@@ -158,7 +160,7 @@ class Categories:
     def get_category(category_id, default=None):
         category_id = str(category_id).strip()
 
-        if category_id in Categories.VALUES:
-            return Categories.VALUES[category_id]
+        if category_id in _CATEGORIES:
+            return _CATEGORIES[category_id]
         
         return default
