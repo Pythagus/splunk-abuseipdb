@@ -1,0 +1,205 @@
+<form version="1.1">
+  <label>AbuseIPDB</label>
+  <description>Make ABuseIPDB calls using a visual interface</description>
+  <fieldset submitButton="false" autoRun="false">
+    <input type="dropdown" token="mode" searchWhenChanged="true">
+      <label>Mode</label>
+      <choice value="check">Check an IP</choice>
+      <choice value="report">Report an IP</choice>
+      <choice value="reports">Get IP reports</choice>
+      <choice value="blacklist">Blacklist</choice>
+      <change>
+        <eval token="mode_check">if($mode$="check", "yes", null())</eval>
+        <eval token="mode_report">if($mode$="report", "yes", null())</eval>
+        <eval token="mode_reports">if($mode$="reports", "yes", null())</eval>
+        <eval token="mode_blacklist">if($mode$="blacklist", "yes", null())</eval>
+        <eval token="show_ip">if(isnotnull($mode$) AND $mode$ != "blacklist", "yes", null())</eval>
+        <eval token="show_age">if($mode$ = "check" OR $mode$ = "reports", "yes", null())</eval>
+        <eval token="show_score">if($mode$ = "blacklist", "yes", null())</eval>
+        <eval token="show_limit">if($mode$ = "blacklist", "yes", null())</eval>
+        <eval token="show_ipversion">if($mode$ = "blacklist", "yes", null())</eval>
+        <eval token="show_countries">if($mode$ = "blacklist", "yes", null())</eval>
+        <eval token="show_comment">if($mode$ = "report", "yes", null())</eval>
+        <eval token="show_categories">if($mode$ = "report", "yes", null())</eval>
+      </change>
+    </input>
+    <input type="text" token="ip" searchWhenChanged="true" depends="$show_ip$">
+      <label>IP address</label>
+    </input>
+    <input type="text" token="comment" searchWhenChanged="true" depends="$show_comment$">
+      <label>Comment</label>
+    </input>
+    <input type="text" token="categories" searchWhenChanged="true" depends="$show_categories$">
+      <label>Categories</label>
+    </input>
+    <input type="text" token="score" searchWhenChanged="true" depends="$show_score$">
+      <label>Abuse score</label>
+    </input>
+    <input type="text" token="age" searchWhenChanged="true" depends="$show_age$">
+      <label>Max age</label>
+      <default>30</default>
+    </input>
+    <input type="text" token="limit" searchWhenChanged="true" depends="$show_limit$">
+      <label>Number of results</label>
+      <default>100</default>
+    </input>
+    <input type="dropdown" token="ipversion" depends="$show_ipversion$" searchWhenChanged="true">
+      <label>IP version</label>
+      <choice value="4">IPv4</choice>
+      <choice value="6">IPv6</choice>
+      <choice value="mixed">Mixed</choice>
+      <default>mixed</default>
+    </input>
+    <input type="text" token="exceptCountries" searchWhenChanged="true" depends="$show_countries$">
+      <label>Except countries (comma delimited)</label>
+      <default></default>
+    </input>
+    <input type="text" token="onlyCountries" searchWhenChanged="true" depends="$show_countries$">
+      <label>Only countries (comma delimited)</label>
+      <default></default>
+    </input>
+  </fieldset>
+  <row id="header_check" depends="$mode_check$">
+    <panel>
+      <html>
+        <style>
+          div[id^="header_"] {
+            margin-top: 30px ;
+          }
+          
+          div[id^="header_"] .panel-body {
+            background: #3c444d !important ;
+          }
+          
+          div[id^="header_"] .panel-body .title {
+            color: white !important ;
+            margin: 0 ;
+          }
+        </style>
+        <h2 class="title">Check IP abuse score</h2>
+      </html>
+    </panel>
+  </row>
+  <row depends="$mode_check$">
+    <panel>
+      <table>
+        <title>IP details</title>
+        <search>
+          <query>| abuseipdb mode=check ip="$ip$" age="$age$" publiconly=False
+| rename abuseipdb_* as *
+| table ip, type, score, nbrReports, lastReported, domain, company, country, usage, tor
+| rename company as Company, country as Country, domain as Website, ip as IP, lastReported as "Last reported date", nbrReports as "Number of reports", score as "Abuse score", tor as "is TOR node", type as Type, usage as Usage
+```$mode_check$```</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+        <format type="color" field="Abuse score">
+          <colorPalette type="list">[#118832,#1182F3,#CBA700,#D94E17,#D41F1F]</colorPalette>
+          <scale type="threshold">0,30,70,100</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row id="header_reports" depends="$mode_reports$">
+    <panel>
+      <html>
+        <h2 class="title">Get all reports of a given IP</h2>
+      </html>
+    </panel>
+  </row>
+  <row depends="$mode_reports$">
+    <panel>
+      <title>Reports</title>
+      <chart>
+        <title>Reports over time</title>
+        <search base="base_abuseipdb_reports_search">
+          <query>| eval _time = strptime(_time, "%Y-%m-%d %H:%M:%S")
+| timechart count</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">zero</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="height">306</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row depends="$mode_reports$">
+    <panel>
+      <table>
+        <title>Reports details</title>
+        <search id="base_abuseipdb_reports_search">
+          <query>| makeresults
+| abuseipdb mode=reports ip="$ip$" age="$age$" 
+| rename abuseipdb_* as *
+| eval reportedAt = strptime(mvindex(split(reportedAt, "+"), 0), "%Y-%m-%dT%H:%M:%S")
+| eval _time = strftime(reportedAt, "%Y-%m-%d %H:%M:%S")
+| table _time, ip, categories, comment
+| sort - _time
+```$mode_reports$```</query>
+          <earliest>-$age$d@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row id="header_report" depends="$mode_report$">
+    <panel>
+      <html>
+        <h2 class="title">Report an IP address</h2>
+      </html>
+    </panel>
+  </row>
+  <row depends="$mode_report$">
+    <panel>
+      <table>
+        <search>
+          <query>| abuseipdb mode=report ip="$ip$" comment="$comment$" categories="$categories$"
+| rename abuseipdb_* as *
+| table *
+```$mode_report$```</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <format type="color" field="status">
+          <colorPalette type="map">{"success":#55C169,"failure":#D41F1F}</colorPalette>
+        </format>
+        <format type="color" field="abuseScore">
+          <colorPalette type="list">[#118832,#1182F3,#CBA700,#D94E17,#D41F1F]</colorPalette>
+          <scale type="threshold">0,30,70,100</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row id="header_blacklist" depends="$mode_blacklist$">
+    <panel>
+      <html>
+        <h2 class="title">Get all IP with a given score</h2>
+      </html>
+    </panel>
+  </row>
+  <row depends="$mode_blacklist$">
+    <panel>
+      <table>
+        <search>
+          <query>| abuseipdb mode=blacklist confidence="$score$" exceptCountries="$exceptCountries$" onlyCountries="$onlyCountries$" limit="$limit$"
+| rename abuseipdb_* as *
+| table *
+```$mode_blacklist$```</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -12,9 +12,14 @@ owner = nobody
 
 # The following elements define the views given by the app to the users.
 
-[views/readme]
+[views/README]
 owner = nobody
 access = read : [ * ], write : [ admin, sc_admin ]
+
+[views/abuseipdb_dashboard]
+access = read : [ * ], write : [ admin, sc_admin ]
+export = none
+owner = nobody
 
 # The following elements need to be exported for the AbuseIPDB command to work outside the app
 
