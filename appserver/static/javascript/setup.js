@@ -1,6 +1,6 @@
 "use strict";
 
-var app_name = "abuseipdb" ;
+var app_name = "abuseipdb-app" ;
 
 // This is an undocumented Splunk solution for how to include javascript logic
 // from other files.

@@ -81,7 +81,7 @@ if __name__ == "__main__":
         categories_idx = get_index(header, categories)
 
         # Retrieve the API key.
-        load_api_key(app=data['app'], server_uri=data['server_uri'], session_key=data['session_key'])
+        load_api_key(app="abuseipdb-app", server_uri=data['server_uri'], session_key=data['session_key'])
 
         # For each event, report the associated IP.
         for line in results:

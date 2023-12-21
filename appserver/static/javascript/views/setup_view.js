@@ -4,7 +4,7 @@ import * as Setup from '../services/setup.js'
 import * as Password from '../services/password.js'
 import * as Configuration from '../services/configuration.js'
 
-const APP_NAME = "abuseipdb" ;
+const APP_NAME = "abuseipdb-app" ;
 const ABUSEIPDB_CONF = "abuseipdb" ;
 
 define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, splunk_js_sdk) {

@@ -77,7 +77,7 @@ def load_api_key(service, app):
 # Prepare the API to be used.
 def prepare(command):
     # Get the API key.
-    load_api_key(service=command.service, app="abuseipdb")
+    load_api_key(service=command.service, app="abuseipdb-app")
 
     # Check whether the API key was retrieved.
     if API_KEY is None:
