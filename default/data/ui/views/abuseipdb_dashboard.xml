@@ -87,8 +87,8 @@
         <search>
           <query>| abuseipdb mode=check ip="$ip$" age="$age$" publiconly=False
 | rename abuseipdb_* as *
-| table ip, type, score, nbrReports, lastReported, domain, company, country, usage, tor
-| rename company as Company, country as Country, domain as Website, ip as IP, lastReported as "Last reported date", nbrReports as "Number of reports", score as "Abuse score", tor as "is TOR node", type as Type, usage as Usage
+| table ip, type, abuseScore, nbrReports, lastReported, domain, company, country, usage, tor
+| rename company as Company, country as Country, domain as Website, ip as IP, lastReported as "Last reported date", nbrReports as "Number of reports", abuseScore as "Abuse score", tor as "is TOR node", type as Type, usage as Usage
 ```$mode_check$```</query>
           <earliest>-24h@h</earliest>
           <latest>now</latest>
