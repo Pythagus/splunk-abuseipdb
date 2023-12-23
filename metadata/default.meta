@@ -12,7 +12,7 @@ owner = nobody
 
 # The following elements define the views given by the app to the users.
 
-[views/README]
+[views/readme]
 owner = nobody
 access = read : [ * ], write : [ admin, sc_admin ]
 

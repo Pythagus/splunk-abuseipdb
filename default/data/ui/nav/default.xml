@@ -1,6 +1,6 @@
 <nav search_view="search" color="#0d254c">
-    <view name="search" default="true" />
     <view name="readme" default="true" />
+    <view name="search" />
     <view name="setup_dashboard" />
     <view name="dashboards" />
 </nav>
