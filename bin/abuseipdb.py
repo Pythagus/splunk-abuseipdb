@@ -423,6 +423,9 @@ class AbuseIPDBCommand(StreamingCommand):
                 except abuseipdb.AbuseIPDBError as e:
                     self.write_warning("AbuseIPDB error: %s" % str(e))
                     yield event
+                except abuseipdb.AbuseIPDBUnreachable:
+                    self.write_warning("AbuseIPDB is unreachable")
+                    yield event
                 except abuseipdb.AbuseIPDBMissingParameter as e:
                     self.write_error("AbuseIPDB: field '%s' required (mode = %s)" % (str(e), self.mode))
                     exit(abuseipdb.ERR_MISSING_PARAMETER)

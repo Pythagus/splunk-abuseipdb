@@ -12,6 +12,7 @@ ERR_API_LIMIT_REACHED = 12
 ERR_UNKNOWN_EXCEPTION = 13
 ERR_MISSING_PARAMETER = 14
 ERR_API_ERROR = 15
+ERR_API_UNREACHABLE = 16
 
 # This is the list of allowed categories, as
 # described in https://www.abuseipdb.com/categories.
@@ -49,6 +50,11 @@ ACTIONS = {
     'report': 'post',
     'reports': 'get',
 }
+
+# This exception is raised when the API doesn't seem
+# to be reachable. This could be coming from a connectivity
+# issue, or a temporary issue on AbuseIPDB's side.
+class AbuseIPDBUnreachable(Exception): pass
 
 # This exception is raised when the API reached its limit.
 class AbuseIPDBRateLimitReached(Exception): pass
@@ -116,7 +122,11 @@ def api(endpoint, params):
     if not endpoint in ACTIONS:
         raise Exception("Action %s not supported" % endpoint)
     
-    response = requests.request(ACTIONS[endpoint], 'https://api.abuseipdb.com/api/v2/' + endpoint, headers=headers, params=params)
+    try:
+        response = requests.request(ACTIONS[endpoint], 'https://api.abuseipdb.com/api/v2/' + endpoint, headers=headers, params=params)
+    except requests.exceptions.ConnectionError:
+        raise AbuseIPDBUnreachable()
+
     json = response.json()
 
     # As refered in https://docs.abuseipdb.com/#api-daily-rate-limits

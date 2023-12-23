@@ -101,6 +101,9 @@ if __name__ == "__main__":
             except abuseipdb.AbuseIPDBRateLimitReached as e:
                 log("API limit reached")
                 exit(abuseipdb.ERR_API_LIMIT_REACHED)
+            except abuseipdb.AbuseIPDBUnreachable:
+                log("API is unreachable")
+                exit(abuseipdb.ERR_API_UNREACHABLE)
             except Exception as e:
                 log(str(e))
                 exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)
