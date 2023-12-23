@@ -81,7 +81,7 @@ def prepare(command):
 
     # Check whether the API key was retrieved.
     if API_KEY is None:
-        command.write_error(None, "No API key found for AbuseIPDB. Re-run the app setup.")
+        command.write_error("No API key found for AbuseIPDB. Re-run the app setup.")
         exit(1)
     
 # This function returns the details response

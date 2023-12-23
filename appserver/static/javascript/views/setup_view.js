@@ -63,7 +63,7 @@ define(["backbone", "jquery", "splunkjs/splunk"], function(Backbone, jquery, spl
 
                 // Save credentials in passwords conf
                 console.log("Storing credentials for [AbuseIPDB]") ;
-                await Password.create_credentials(splunk_service, ABUSEIPDB_CONF, param.token) ;
+                await Password.create_credentials(splunk_service, APP_NAME, param.token) ;
 
                 // Completes the setup, by access the app.conf's [install]
                 // stanza and then setting the `is_configured` to true
