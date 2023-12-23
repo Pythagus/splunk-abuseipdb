@@ -5,6 +5,14 @@ import requests
 # The API key used to authenticate to AbuseIPDB API.
 API_KEY = None
 
+# List of possible errors associated to an error code.
+ERR_API_KEY = 10
+ERR_PREPARE = 11
+ERR_API_LIMIT_REACHED = 12
+ERR_UNKNOWN_EXCEPTION = 13
+ERR_MISSING_PARAMETER = 14
+ERR_API_ERROR = 15
+
 # This is the list of allowed categories, as
 # described in https://www.abuseipdb.com/categories.
 _CATEGORIES = {
@@ -82,7 +90,7 @@ def prepare(command):
     # Check whether the API key was retrieved.
     if API_KEY is None:
         command.write_error("No API key found for AbuseIPDB. Re-run the app setup.")
-        exit(1)
+        exit(ERR_API_KEY)
     
 # This function returns the details response
 # provided by AbuseIPDB API

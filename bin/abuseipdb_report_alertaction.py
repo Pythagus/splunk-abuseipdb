@@ -9,11 +9,6 @@ import api as abuseipdb
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 import splunklib.client as client
 
-# Possible error codes generated.
-ERR_UNKNOWN_EXCEPTION = 1
-ERR_API_LIMIT_REACHED = 2
-ERR_API_ERROR = 3
-
 # Log an error message.
 def log(message):
     # Print the message, so that Splunk gets it in the _internal sourcetype.
@@ -40,7 +35,7 @@ def get_configuration(data, key):
     except: pass
 
     log("Missing parameter %s" % key)
-    sys.exit(1)
+    exit(abuseipdb.ERR_MISSING_PARAMETER)
 
 # Get the index of the given key in the list.
 def get_index(data, key):
@@ -102,13 +97,13 @@ if __name__ == "__main__":
             except abuseipdb.AbuseIPDBMissingParameter: pass
             except abuseipdb.AbuseIPDBError as e:
                 log(str(e))
-                exit(ERR_API_ERROR)
+                exit(abuseipdb.ERR_API_ERROR)
             except abuseipdb.AbuseIPDBRateLimitReached as e:
                 log("API limit reached")
-                exit(ERR_API_LIMIT_REACHED)
+                exit(abuseipdb.ERR_API_LIMIT_REACHED)
             except Exception as e:
                 log(str(e))
-                exit(ERR_UNKNOWN_EXCEPTION)
+                exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)
     else:
         log("Failure: expected argument '--execute'")
 else:

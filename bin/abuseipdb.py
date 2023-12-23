@@ -196,7 +196,7 @@ class AbuseIPDBCommand(StreamingCommand):
             abuseipdb.prepare(self)
         except Exception as e:
             self.write_error(str(e))
-            exit(1)
+            exit(abuseipdb.ERR_PREPARE)
     
     # After this method is called, it ensures that the
     # given parameter is not None.
@@ -425,10 +425,11 @@ class AbuseIPDBCommand(StreamingCommand):
                     yield event
                 except abuseipdb.AbuseIPDBMissingParameter as e:
                     self.write_error("AbuseIPDB: field '%s' required (mode = %s)" % (str(e), self.mode))
-                    exit(1)
+                    exit(abuseipdb.ERR_MISSING_PARAMETER)
                 except Exception as e:
                     self.write_error(str(e))
-                    exit(1)
+                    exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)
+                    
             events = [{}]
 
 
