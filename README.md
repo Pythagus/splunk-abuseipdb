@@ -194,5 +194,5 @@ You are welcome to contribute to this app by submitting a pull request. I will b
 
 `.tar.gz` was generated using the command:
 ```bash
-COPYFILE_DISABLE=1 tar --exclude-vcs --exclude="__pycache__" --format ustar -cvzf abuseipdb.tar.gz .
+COPYFILE_DISABLE=1 tar --exclude-vcs --exclude="__pycache__" --exclude="log" --format ustar -cvzf abuseipdb.tar.gz .
 ```
