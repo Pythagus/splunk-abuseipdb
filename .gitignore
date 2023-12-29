@@ -1,4 +1,7 @@
+# Python files.
 __pycache__
+
+# Splunk files.
 local
-metadata/local.meta
-bin/log
+local.meta
+*.log
