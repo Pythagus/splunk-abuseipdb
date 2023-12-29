@@ -191,8 +191,3 @@ You can use a friendly interface to make all the API calls you want. This is als
 
 # <a id="the-end">#</a> About this app
 You are welcome to contribute to this app by submitting a pull request. I will be very glad to improve this app!
-
-`.tar.gz` was generated using the command:
-```bash
-COPYFILE_DISABLE=1 tar --exclude-vcs --exclude="__pycache__" --exclude="log" --format ustar -cvzf abuseipdb.tar.gz abuseipdb-app
-```
