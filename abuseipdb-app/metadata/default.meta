@@ -25,11 +25,11 @@ owner = nobody
 
 [commands/abuseipdb]
 export = system
-access = read : [ admin, sc_admin ], write : [ admin, sc_admin ]
+access = read : [ * ], write : [ admin, sc_admin ]
 
 [abuseipdb]
 export = system
-access = read : [ admin, sc_admin ], write : [ admin, sc_admin ]
+access = read : [ * ], write : [ admin, sc_admin ]
 
 [searchbnf/abuseipdb-command]
 export = system
