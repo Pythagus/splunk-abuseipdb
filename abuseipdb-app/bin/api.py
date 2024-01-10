@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import requests
+import json
 
 # The API key used to authenticate to AbuseIPDB API.
 API_KEY = None
@@ -127,15 +128,20 @@ def api(endpoint, params):
     except requests.exceptions.ConnectionError:
         raise AbuseIPDBUnreachable()
 
-    json = response.json()
+    # If the response is not in the JSON format,
+    # a decode error is raised by the module.
+    try:
+        data = response.json()
+    except json.decoder.JSONDecodeError:
+        raise AbuseIPDBError("JSON decode error")
 
     # As refered in https://docs.abuseipdb.com/#api-daily-rate-limits
     if response.status_code == 429:
         # In some cases, a 429 error is returned, but with
         # a different status code inside the error details.
         # So, we are managing the responses differently.
-        if int(_get_http_response_details(json, 'status')) == 403:
-            raise AbuseIPDBError(_get_http_response_details(json))
+        if int(_get_http_response_details(data, 'status')) == 403:
+            raise AbuseIPDBError(_get_http_response_details(data))
         else:
             raise AbuseIPDBRateLimitReached()
     
@@ -147,17 +153,17 @@ def api(endpoint, params):
     # When a parameter is only available for paid AbuseIPDB
     # licence, an HTTP 402 response is returned.
     if response.status_code == 402:
-        raise AbuseIPDBInvalidParameter(_get_http_response_details(json))
+        raise AbuseIPDBInvalidParameter(_get_http_response_details(data))
     
     # If a parameter is invalid.
     if response.status_code == 422:
-        raise AbuseIPDBError(_get_http_response_details(json))
+        raise AbuseIPDBError(_get_http_response_details(data))
     
     # If the response is not succesful
     if response.status_code != 200:
         raise AbuseIPDBError("Got status code %d" % response.status_code)
     
-    return json
+    return data
 
 # This class is helpful to convert a given id
 # or category to the other.
