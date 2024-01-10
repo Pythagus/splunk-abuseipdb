@@ -106,6 +106,7 @@ If the command passes, new fields will be added to every events.</p>
 <li><strong>mode=reports</strong>: The command mode for getting the reports an IP</li>
 <li><strong>ip</strong>: An explicit IP address, or a Splunk field name containing the IP</li>
 <li><strong>age</strong>: <em>(optional)</em> Time range (in days) to check the IP on. Integer between <code>1</code> and <code>365</code>, default is <code>30</code>.</li>
+<li><strong>limit</strong>: <em>(optional)</em> The maximum number of requests to request to the API. Default: <code>100</code>.</li>
 </ul>
 <h3 id="returned-fields">Returned fields</h3>
 <ul>
@@ -121,8 +122,6 @@ If the command passes, new fields will be added to every events.</p>
 </code></pre><p>Example with the categories:</p>
 <pre><code>| <span class="hljs-type">abuseipdb</span> mode=reports ip=<span class="hljs-string">"64.62.197.152"</span> age=<span class="hljs-number">10</span>
 | <span class="hljs-type">table</span> *
-| <span class="hljs-type">makemv</span> delim=<span class="hljs-string">","</span> abuseipdb_categories 
-| <span class="hljs-type">lookup</span> AbuseIPDB_Categories id <span class="hljs-built_in">as</span> abuseipdb_categories
 </code></pre><p><br/></p>
 <h2 id="-a-id-command-blacklist-a-blacklist-get-all-ip-with-a-confidence-score"><a id="command-blacklist">#</a> Blacklist - Get all IP with a confidence score</h2>
 <p>This command gets all the IP addresses with a specific confidence score and upper.</p>

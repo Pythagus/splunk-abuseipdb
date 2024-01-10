@@ -121,6 +121,7 @@ This command gathers all reports sent regarding a given IP address.
 - **mode=reports**: The command mode for getting the reports an IP
 - **ip**: An explicit IP address, or a Splunk field name containing the IP
 - **age**: *(optional)* Time range (in days) to check the IP on. Integer between `1` and `365`, default is `30`.
+- **limit**: *(optional)* The maximum number of requests to request to the API. Default: `100`
 
 ### Returned fields
 - **ip**: The tested IP address.
@@ -139,8 +140,6 @@ Example with the categories:
 ```
 | abuseipdb mode=reports ip="64.62.197.152" age=10
 | table *
-| makemv delim="," abuseipdb_categories 
-| lookup AbuseIPDB_Categories id as abuseipdb_categories
 ```
 
 <br>
