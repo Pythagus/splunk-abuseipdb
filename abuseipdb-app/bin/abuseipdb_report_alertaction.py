@@ -15,7 +15,7 @@ def log(message):
     print(message)
 
     # And then add it in a file.
-    file = open("log/alertaction.log", "a")
+    file = open("alertaction.log", "a")
     file.write(message + "\n")
     file.close()
 
