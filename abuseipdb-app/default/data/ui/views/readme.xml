@@ -119,9 +119,6 @@ If the command passes, new fields will be added to every events.</p>
 <p>This search must be used on the top-level search.</p>
 <pre><code><span class="hljs-string">| abuseipdb mode=reports ip="</span><span class="hljs-number">64.62</span>.<span class="hljs-number">197.152</span><span class="hljs-string">"</span>
 <span class="hljs-string">| table *</span>
-</code></pre><p>Example with the categories:</p>
-<pre><code>| <span class="hljs-type">abuseipdb</span> mode=reports ip=<span class="hljs-string">"64.62.197.152"</span> age=<span class="hljs-number">10</span>
-| <span class="hljs-type">table</span> *
 </code></pre><p><br/></p>
 <h2 id="-a-id-command-blacklist-a-blacklist-get-all-ip-with-a-confidence-score"><a id="command-blacklist">#</a> Blacklist - Get all IP with a confidence score</h2>
 <p>This command gets all the IP addresses with a specific confidence score and upper.</p>
