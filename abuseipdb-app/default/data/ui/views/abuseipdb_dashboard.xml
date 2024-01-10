@@ -1,6 +1,6 @@
 <form version="1.1">
   <label>AbuseIPDB</label>
-  <description>Make ABuseIPDB calls using a visual interface</description>
+  <description>Make AbuseIPDB calls using a visual interface</description>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="mode" searchWhenChanged="true">
       <label>Mode</label>
@@ -29,8 +29,32 @@
     <input type="text" token="comment" searchWhenChanged="true" depends="$show_comment$">
       <label>Comment</label>
     </input>
-    <input type="text" token="categories" searchWhenChanged="true" depends="$show_categories$">
+    <input type="multiselect" token="categories" depends="$show_categories$" searchWhenChanged="true">
       <label>Categories</label>
+      <choice value="1">DNS Compromise</choice>
+      <choice value="2">DNS Poisoning</choice>
+      <choice value="3">Fraud Orders</choice>
+      <choice value="4">DDoS Attack</choice>
+      <choice value="5">FTP Brute-Force</choice>
+      <choice value="6">Ping of Death</choice>
+      <choice value="7">Phishing</choice>
+      <choice value="8">Fraud VoIP</choice>
+      <choice value="9">Open Proxy</choice>
+      <choice value="10">Web Spam</choice>
+      <choice value="11">Email Spam</choice>
+      <choice value="12">Blog Spam</choice>
+      <choice value="13">VPN IP</choice>
+      <choice value="14">Port Scan</choice>
+      <choice value="15">Hacking</choice>
+      <choice value="16">SQL Injection</choice>
+      <choice value="17">Spoofing</choice>
+      <choice value="18">Brute-Force</choice>
+      <choice value="19">Bad Web Bot</choice>
+      <choice value="20">Exploited Host</choice>
+      <choice value="21">Web App Attack</choice>
+      <choice value="22">SSH</choice>
+      <choice value="23">IoT Targeted</choice>
+      <delimiter>,</delimiter>
     </input>
     <input type="text" token="score" searchWhenChanged="true" depends="$show_score$">
       <label>Abuse score</label>
