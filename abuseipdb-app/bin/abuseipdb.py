@@ -1,12 +1,8 @@
 #!/usr/bin/env python
 
-import os
 import sys
 import ipaddress
 import api as abuseipdb
-
-# Add the Splunk internal library
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 
 # This cache is used to reduce the number

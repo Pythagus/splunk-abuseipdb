@@ -1,12 +1,8 @@
 import json
 import sys
-import os
 import csv
 import gzip
 import api as abuseipdb
-
-# Add the Splunk internal library
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 import splunklib.client as client
 
 # Log an error message.
