@@ -29,8 +29,9 @@ If the command passes, new fields will be added to every events.
 ### Parameters
 - **mode=check**: The command mode for checking an IP.
 - **ip**: An explicit IP address, or a Splunk field name containing the IP.
-- **age**: *(optional)* Time range (in days) to check the IP on. Integer between `1` and `365`, default is `30`.
+- **age**: *(optional)* Time range (in days) to check the IP on. Integer between `1` and `365`. Default is `30`.
 - **publiconly**: *(optional)* A boolean to only check public IP addresses for saving some API calls. Default is `True`.
+- **prefix**: *(optional)* The string added before every returned fields' name. Default is `abuseipdb_`.
 
 ### Returned fields
 - **ip**: The tested IP address.

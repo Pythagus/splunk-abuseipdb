@@ -108,7 +108,7 @@ def _check_range(http_params):
 
 # Merge the two dictionnaries by making
 # a fresh new one.
-def merge_dict(dict1, dict_abuseipdb, prefix="abuseipdb_"):
+def merge_dict(dict1, dict_abuseipdb, prefix):
     new_dict = {k:v for k, v in dict1.items()}
 
     for key, value in dict_abuseipdb.items():
@@ -133,6 +133,12 @@ class AbuseIPDBCommand(StreamingCommand):
             **Syntax:** **ip=***<str>*
             **Description:** Field containing the IP address or the IP address itself''',
         require=False)
+    
+    prefix = Option(
+        doc='''
+            **Syntax:** **prefix=***<string>*
+            **Description:** prefix added to every returned fields''',
+        require=False, default="abuseipdb_")
     
     publiconly = Option(
         doc='''
@@ -412,13 +418,13 @@ class AbuseIPDBCommand(StreamingCommand):
                     data = data if isinstance(data, list) else [data]
 
                     for arr in data:
-                        new_event = merge_dict(event, arr)
+                        new_event = merge_dict(event, arr, prefix=self.getParamValue("prefix", event))
                         yield new_event
                 except abuseipdb.AbuseIPDBRateLimitReached as e:
                     self.write_warning("AbuseIPDB API rate limit reached")
                     yield event
                 except abuseipdb.AbuseIPDBInvalidParameter as e:
-                    self.write_warning(str(e))
+                    self.write_warning("Invalid parameter: %s" % str(e))
                     yield event
                 except abuseipdb.AbuseIPDBError as e:
                     self.write_warning("AbuseIPDB error: %s" % str(e))
@@ -430,7 +436,7 @@ class AbuseIPDBCommand(StreamingCommand):
                     self.write_error("AbuseIPDB: field '%s' required (mode = %s)" % (str(e), self.mode))
                     exit(abuseipdb.ERR_MISSING_PARAMETER)
                 except Exception as e:
-                    self.write_error(str(e))
+                    self.write_error("Error: %s" % str(e))
                     exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)
                     
             events = [{}]
