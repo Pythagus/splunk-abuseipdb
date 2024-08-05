@@ -6,54 +6,24 @@ access = read : [ * ], write : [ admin, sc_admin ]
 export = system
 
 [nav/default]
-access = read : [ * ], write : [ admin, sc_admin ]
 export = none
 owner = nobody
 
 # The following elements define the views given by the app to the users.
 
 [views/readme]
-owner = nobody
-access = read : [ * ], write : [ admin, sc_admin ]
-
-[views/abuseipdb_dashboard]
-access = read : [ * ], write : [ admin, sc_admin ]
 export = none
 owner = nobody
 
-# The following elements need to be exported for the AbuseIPDB command to work outside the app
+[views/abuseipdb_dashboard]
+export = none
+owner = nobody
 
-[commands/abuseipdb]
-export = system
-access = read : [ * ], write : [ admin, sc_admin ]
-
-[abuseipdb]
-export = system
-access = read : [ * ], write : [ admin, sc_admin ]
-
-[searchbnf/abuseipdb-command]
-export = system
-access = read : [ * ], write : [ admin, sc_admin ]
-
-[searchbnf/abuseipdb-options]
-export = system
-access = read : [ * ], write : [ admin, sc_admin ]
+[views/abuseipdb_alert_action]
+export = none
+owner = nobody
 
 # For accessing the API key in all Splunk apps.
 
 [passwords]
-access = read : [ * ], write : [ admin, sc_admin ]
-export = system
-
-# For enabling alert actions on all applications.
-
-[alert_actions]
-export = system
-access = read : [ * ], write : [ admin, sc_admin ]
-
-# For accessing the dashboards only in the app.
-
-[views/abuseipdb__alert_action]
 owner = nobody
-export = none
-access = read : [ * ], write : [ admin, sc_admin ]
