@@ -39,6 +39,7 @@ If the command passes, new fields will be added to every events.</p>
 <li><strong>ip</strong>: An explicit IP address, or a Splunk field name containing the IP.</li>
 <li><strong>age</strong>: <em>(optional)</em> Time range (in days) to check the IP on. Integer between <code>1</code> and <code>365</code>, default is <code>30</code>.</li>
 <li><strong>publiconly</strong>: <em>(optional)</em> A boolean to only check public IP addresses for saving some API calls. Default is <code>True</code>.</li>
+<li><strong>prefix</strong>: <em>(optional)</em> The string added before every returned fields' name. Default is <code>abuseipdb_</code>.</li>
 </ul>
 <h3 id="returned-fields">Returned fields</h3>
 <ul>

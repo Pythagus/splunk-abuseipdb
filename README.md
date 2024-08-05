@@ -57,7 +57,7 @@ Copy-paste example: (ip option as a field-name)
 ```
 | makeresults
 | eval ip_in_event = "64.62.197.152" 
-| abuseipdb mode=check ip=ip_in_event
+| abuseipdb mode=check ip=ip_in_event prefix=""
 ```
 
 That could also have been replaced with: *(ip option as a string)*
