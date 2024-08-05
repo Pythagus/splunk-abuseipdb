@@ -1,5 +1,5 @@
 <form version="1.1">
-  <label>AbuseIPDB - Alert Action</label>
+  <label>AbuseIPDB - Action triggered overview</label>
   <fieldset submitButton="false">
     <input type="time" token="timerange" searchWhenChanged="true">
       <label>Time range</label>

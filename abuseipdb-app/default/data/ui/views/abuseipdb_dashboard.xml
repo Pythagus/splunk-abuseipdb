@@ -1,5 +1,5 @@
 <form version="1.1">
-  <label>AbuseIPDB</label>
+  <label>AbuseIPDB - Interact with the API</label>
   <description>Make AbuseIPDB calls using a visual interface</description>
   <fieldset submitButton="false" autoRun="false">
     <input type="dropdown" token="mode" searchWhenChanged="true">
