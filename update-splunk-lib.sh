@@ -15,7 +15,7 @@
 TEMPORARY_FOLDER="tmp-splunk-lib-repository"
 
 # The current library folder path.
-CURRENT_LIB="abuseipdb-app/lib/splunklib"
+CURRENT_LIB="abuseipdb-app/bin/splunklib"
 
 # The git tag that should be retrieved.
 TAG=
