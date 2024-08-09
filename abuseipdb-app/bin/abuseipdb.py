@@ -4,10 +4,23 @@ import sys
 import ipaddress
 import api as abuseipdb
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
+import time
 
 # This cache is used to reduce the number
 # of API calls, if the IP was already called before.
 IP_CACHE = {}
+
+# Number of seconds between two termination checks.
+# This mecanism is useful to reduce the number of
+# requests made to the API if the job was stopped.
+TERMINATION_CHECK_INTERVAL = 10
+
+
+# This exception is raised when the job's command
+# was terminated, meaning that all of this code
+# have to stop.
+class SplunkJobTerminatedException(Exception): pass
+
 
 # This function adds the missing fields after a
 # check call.
@@ -196,9 +209,29 @@ class AbuseIPDBCommand(StreamingCommand):
     def prepare(self):
         try:
             abuseipdb.prepare(self)
+
+            # Custom class properties to set.
+            self.last_termination_check = time.time()
         except Exception as e:
             self.write_error(str(e))
             exit(abuseipdb.ERR_PREPARE)
+
+    # Check whether the job was canceled. If so, we
+    # can stop this command by raising an exception,
+    # so that we reduce the number of API calls.
+    # Without that, HTTP requests would still be sent.
+    def check_termination(self):
+        # If the number of seconds between the last check and now
+        # exceeds the interval, then check the job's status.
+        if (time.time() - self.last_termination_check) > TERMINATION_CHECK_INTERVAL:
+            self.last_termination_check = time.time()
+
+            job = self.service.job(self.metadata.searchinfo.sid)
+            state = str(job['dispatchState']).upper()
+
+            # If the job was stopped, then raise an exception.
+            if state == "FAILED" or state == "FINALIZING" or state == "FINALIZED":
+                raise SplunkJobTerminatedException(state)
     
     # After this method is called, it ensures that the
     # given parameter is not None.
@@ -379,6 +412,12 @@ class AbuseIPDBCommand(StreamingCommand):
         if self.mode == "blacklist":
             events = [{}]
 
+        # If an "important" warning happened, we don't want to
+        # continue indefinitely (or during a long time) to test
+        # the exact same requests. Then, stop the loop where you
+        # are.
+        should_stop = False
+
         # This is testing whether an event is in Splunk's pipe.
         # If not, we create an "empty" event, so that we can add
         # the data we will found, and have it in Splunk. 
@@ -393,6 +432,12 @@ class AbuseIPDBCommand(StreamingCommand):
         while not checked:
             for event in events:
                 checked = True
+
+                # If this loop should stop, then yield
+                # the event to keep it in Splunk's pipe.
+                if should_stop:
+                    yield event
+                    continue
 
                 try:
                     data = list()
@@ -416,9 +461,13 @@ class AbuseIPDBCommand(StreamingCommand):
                     for arr in data:
                         new_event = merge_dict(event, arr, prefix=self.getParamValue("prefix", event))
                         yield new_event
+
+                    # Stop the command if the job was terminated.
+                    self.check_termination()
                 except abuseipdb.AbuseIPDBRateLimitReached as e:
                     self.write_warning("AbuseIPDB API rate limit reached")
                     yield event
+                    should_stop = True
                 except abuseipdb.AbuseIPDBInvalidParameter as e:
                     self.write_warning("Invalid parameter: %s" % str(e))
                     yield event
@@ -428,9 +477,13 @@ class AbuseIPDBCommand(StreamingCommand):
                 except abuseipdb.AbuseIPDBUnreachable:
                     self.write_warning("AbuseIPDB is unreachable")
                     yield event
+                    should_stop = True
                 except abuseipdb.AbuseIPDBMissingParameter as e:
                     self.write_error("AbuseIPDB: field '%s' required (mode = %s)" % (str(e), self.mode))
                     exit(abuseipdb.ERR_MISSING_PARAMETER)
+                except SplunkJobTerminatedException:
+                    yield event
+                    should_stop = True
                 except Exception as e:
                     self.write_error("Error: %s" % str(e))
                     exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)

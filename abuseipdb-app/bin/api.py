@@ -14,6 +14,7 @@ ERR_UNKNOWN_EXCEPTION = 13
 ERR_MISSING_PARAMETER = 14
 ERR_API_ERROR = 15
 ERR_API_UNREACHABLE = 16
+ERR_JOB_TERMINATED = 17
 
 # This is the list of allowed categories, as
 # described in https://www.abuseipdb.com/categories.
