@@ -27,3 +27,9 @@ owner = nobody
 
 [passwords]
 owner = nobody
+
+# Scheduled reports.
+
+[savedsearches/%5BAbuseIPDB%5D%20KV-store%20periodical%20update]
+export = none
+owner = nobody
