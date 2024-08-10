@@ -3,4 +3,5 @@
     <view name="search" />
     <view name="setup_dashboard" />
     <view name="dashboards" />
+    <view name="reports" />
 </nav>
