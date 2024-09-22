@@ -2,7 +2,7 @@ import json
 import sys
 import csv
 import gzip
-import api as abuseipdb
+import abuseipdb.api
 import splunklib.client as client
 
 # Log an error message.
@@ -31,7 +31,7 @@ def get_configuration(data, key):
     except: pass
 
     log("Missing parameter %s" % key)
-    exit(abuseipdb.ERR_MISSING_PARAMETER)
+    exit(abuseipdb.api.ERR_MISSING_PARAMETER)
 
 # Get the index of the given key in the list.
 def get_index(data, key):
@@ -48,7 +48,7 @@ def load_api_key(app, server_uri, session_key):
     port = hostname[1].split(':')[1]
     service = client.connect(scheme=scheme, host=host, port=port, app=app, token=session_key)
 
-    abuseipdb.load_api_key(service, app)
+    abuseipdb.api.load_api_key(service, app)
 
 
 # If this is an execution and not an import.
@@ -81,28 +81,28 @@ if __name__ == "__main__":
             final_categories = []
             arr = str(line[categories_idx] if categories_idx is not None else categories).split(',')
             for cat in arr:
-                final_categories.append(abuseipdb.Categories.get_id(cat, default=cat))
+                final_categories.append(abuseipdb.api.Categories.get_id(cat, default=cat))
 
             try:
-                abuseipdb.api('report', {
+                abuseipdb.api.call('report', {
                     'ip': line[ipfield_idx] if ipfield_idx is not None else ipfield,
                     'comment': line[comment_idx] if comment_idx is not None else comment,
                     'categories': ",".join(final_categories),
                 })
-            except abuseipdb.AbuseIPDBInvalidParameter: pass
-            except abuseipdb.AbuseIPDBMissingParameter: pass
-            except abuseipdb.AbuseIPDBError as e:
+            except abuseipdb.api.AbuseIPDBInvalidParameter: pass
+            except abuseipdb.api.AbuseIPDBMissingParameter: pass
+            except abuseipdb.api.AbuseIPDBError as e:
                 log(str(e))
-                exit(abuseipdb.ERR_API_ERROR)
-            except abuseipdb.AbuseIPDBRateLimitReached as e:
+                exit(abuseipdb.api.ERR_API_ERROR)
+            except abuseipdb.api.AbuseIPDBRateLimitReached as e:
                 log("API limit reached")
-                exit(abuseipdb.ERR_API_LIMIT_REACHED)
-            except abuseipdb.AbuseIPDBUnreachable:
+                exit(abuseipdb.api.ERR_API_LIMIT_REACHED)
+            except abuseipdb.api.AbuseIPDBUnreachable:
                 log("API is unreachable")
-                exit(abuseipdb.ERR_API_UNREACHABLE)
+                exit(abuseipdb.api.ERR_API_UNREACHABLE)
             except Exception as e:
                 log(str(e))
-                exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)
+                exit(abuseipdb.api.ERR_UNKNOWN_EXCEPTION)
     else:
         log("Failure: expected argument '--execute'")
 else:
