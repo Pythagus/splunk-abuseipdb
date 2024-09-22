@@ -3,6 +3,7 @@
 import sys
 import ipaddress
 import abuseipdb.api
+import abuseipdb.cache
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import time
 
@@ -50,14 +51,13 @@ def _check_ensure_format(data):
 # This function makes a "check" action
 # for the given IP address.
 def _check_ip(http_params):
-    global IP_CACHE
-
     ip = http_params['ipAddress']
 
     # Let's make an HTTP request!
     response = abuseipdb.api.call('check', http_params)
     json = response['data']
-    data = {
+    
+    return {
         "ip": ip,
         "type": 'Public' if json['isPublic'] else 'Private',
         "abuseScore": json['abuseConfidenceScore'],
@@ -69,10 +69,6 @@ def _check_ip(http_params):
         "nbrReports": json['totalReports'],
         "lastReported": json['lastReportedAt']
     }
-
-    IP_CACHE[ip] = data
-
-    return data
 
 # This function makes a "check" action
 # for the given network range.
@@ -202,20 +198,40 @@ class AbuseIPDBCommand(StreamingCommand):
             **Syntax:** **comment=***<string>*
             **Description:** malicious actiivty comment''',
         require=False)
+    
+    usecache = Option(
+        doc='''
+            **Syntax:** **usecache=***<bool>*
+            **Description:** Determine whether the cache should be used to retrieve IP data (mode=check only)''',
+        require=False, default=True, validate=validators.Boolean())
 
     # This method is called by splunkd before the
     # command executes. It is used to get the configuration
     # data from Splunk.
     def prepare(self):
+        self.ip_cache = None
+
         try:
             abuseipdb.api.prepare(self)
 
             # Custom class properties to set.
             self.last_termination_check = time.time()
-
         except Exception as e:
             self.write_error("AbuseIPDB: Unknown error (prepare) - " + str(e))
             exit(abuseipdb.api.ERR_PREPARE)
+
+        try:
+            # Configure the IP cache only if needed.
+            if self.usecache and self.mode == "check":
+                self.ip_cache = abuseipdb.cache.IpCache(
+                    service=self.service, name=abuseipdb.cache.IP_CACHE
+                )
+        except abuseipdb.api.AbuseIPDBConfigNotFound as e:
+            self.write_warning("AbuseIPDB: Could not retrieve config (%s => %s => %s)" % (e.file, e.stanza, e.key))
+            self.ip_cache = None
+        except abuseipdb.api.AbuseIPDBCacheNotFound as e:
+            self.write_warning("AbuseIPDB: KV-store %s unavailable" % str(e))
+            self.ip_cache = None
 
     # Check whether the job was canceled. If so, we
     # can stop this command by raising an exception,
@@ -267,8 +283,11 @@ class AbuseIPDBCommand(StreamingCommand):
         
         # First, we check whether the IP is already in the
         # cache. If so, we don't need to make an API call.
-        if ip in IP_CACHE:
-            return IP_CACHE[ip]
+        if self.ip_cache:
+            cached_data = self.ip_cache.get(ip)
+
+            if cached_data:
+                return cached_data
         
         # If it is a range, then we have to do
         # a "check-block" call.
@@ -294,10 +313,19 @@ class AbuseIPDBCommand(StreamingCommand):
         except ValueError: # Exception raised when the value is not an IP address
             return {}
 
-        return _check_ip({
+        data = _check_ip({
             'ipAddress': ip,
             'maxAgeInDays': self.age
         })
+
+        # Store the data in the cache, so that we can retrieve
+        # the records if needed.
+        if self.ip_cache:
+            cached_data = data
+            cached_data.pop("ip") # remove the ip field.
+            self.ip_cache.store(ip, cached_data)
+
+        return data
     
     # Get all the IP known for abusive behavior.
     def blacklist(self):
@@ -412,6 +440,12 @@ class AbuseIPDBCommand(StreamingCommand):
         # single empty event.
         if self.mode == "blacklist":
             events = [{}]
+
+        # If the command was executed to gather intelligence on
+        # IP addresses, then we clean the cache from the oldest
+        # entries, so that we make the API calls if needed.
+        if self.ip_cache is not None:
+            self.ip_cache.clean()
 
         # If an "important" warning happened, we don't want to
         # continue indefinitely (or during a long time) to test

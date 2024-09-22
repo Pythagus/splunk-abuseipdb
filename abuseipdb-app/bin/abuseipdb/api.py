@@ -74,6 +74,18 @@ class AbuseIPDBError(Exception): pass
 # an error when we called an endpoint.
 class AbuseIPDBMissingParameter(Exception): pass
 
+# This exception is raised when an AbuseIPDB custom config
+# couldn't be retrieved.
+class AbuseIPDBConfigNotFound(Exception):
+    def __init__(self, file, stanza, key):
+        self.file = file
+        self.stanza = stanza
+        self.key = key
+
+# This exception is raised when the Splunk KV-Store cannot
+# be contacted from the Python code.
+class AbuseIPDBCacheNotFound(Exception): pass
+
 
 # Get the key from the given service for
 # the given app.
@@ -90,6 +102,13 @@ def load_api_key(service, app):
                 key = None
 
     API_KEY = key
+
+# Get a config value from the default/local files. 
+def get_config(service, stanza: str, key: str, file="abuseipdb"):
+    try:
+        return service.confs[file][stanza][key]
+    except KeyError as e:
+        raise AbuseIPDBConfigNotFound(file, stanza, key) from e
 
 # Prepare the API to be used.
 def prepare(command):
