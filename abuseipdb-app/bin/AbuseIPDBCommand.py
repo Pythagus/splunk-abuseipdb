@@ -2,7 +2,7 @@
 
 import sys
 import ipaddress
-import api as abuseipdb
+import abuseipdb.api
 from splunklib.searchcommands import dispatch, StreamingCommand, Configuration, Option, validators
 import time
 
@@ -55,7 +55,7 @@ def _check_ip(http_params):
     ip = http_params['ipAddress']
 
     # Let's make an HTTP request!
-    response = abuseipdb.api('check', http_params)
+    response = abuseipdb.api.call('check', http_params)
     json = response['data']
     data = {
         "ip": ip,
@@ -85,7 +85,7 @@ def _check_range(http_params):
     # whole network range we need to check. In that case,
     # we need to do a "check-block" operation instead of a
     # simple check.
-    response = abuseipdb.api('check-block', http_params)
+    response = abuseipdb.api.call('check-block', http_params)
     json = response['data']
 
     # If it is a network, we will generate new events
@@ -165,13 +165,13 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **confidence=***<integer>*
             **Description:** Minimum confidence level''',
-        require=False, validate=validators.Integer(0), default=100)
+        require=False, validate=validators.Integer(minimum=0), default=100)
     
     limit = Option(
         doc='''
             **Syntax:** **limit=***<integer>*
             **Description:** maximum number of IP to get''',
-        require=False, validate=validators.Integer(1), default=100)
+        require=False, validate=validators.Integer(minimum=1), default=100)
     
     ipVersion = Option(
         doc='''
@@ -201,20 +201,21 @@ class AbuseIPDBCommand(StreamingCommand):
         doc='''
             **Syntax:** **comment=***<string>*
             **Description:** malicious actiivty comment''',
-        require=False)     
+        require=False)
 
     # This method is called by splunkd before the
     # command executes. It is used to get the configuration
     # data from Splunk.
     def prepare(self):
         try:
-            abuseipdb.prepare(self)
+            abuseipdb.api.prepare(self)
 
             # Custom class properties to set.
             self.last_termination_check = time.time()
+
         except Exception as e:
-            self.write_error(str(e))
-            exit(abuseipdb.ERR_PREPARE)
+            self.write_error("AbuseIPDB: Unknown error (prepare) - " + str(e))
+            exit(abuseipdb.api.ERR_PREPARE)
 
     # Check whether the job was canceled. If so, we
     # can stop this command by raising an exception,
@@ -237,7 +238,7 @@ class AbuseIPDBCommand(StreamingCommand):
     # given parameter is not None.
     def ensureParameter(self, param: str):
         if getattr(self, param) is None:
-            raise abuseipdb.AbuseIPDBMissingParameter(param)
+            raise abuseipdb.api.AbuseIPDBMissingParameter(param)
 
     # Get a parameter from the event if it exists, or
     # from the command otherwise.
@@ -306,7 +307,7 @@ class AbuseIPDBCommand(StreamingCommand):
         self.ensureParameter('ipVersion')
 
         # Let's make an HTTP request!
-        response = abuseipdb.api('blacklist', {
+        response = abuseipdb.api.call('blacklist', {
             'confidenceMinimum': self.confidence,
             'limit': self.limit,
             'onlyCountries': self.onlyCountries,
@@ -339,17 +340,17 @@ class AbuseIPDBCommand(StreamingCommand):
         # Convert the categories.
         categories = []
         for category in self.getParamValue('categories', event).split(','):
-            categories.append(abuseipdb.Categories.get_id(category, default=category))
+            categories.append(abuseipdb.api.Categories.get_id(category, default=category))
 
         try:
-            response = abuseipdb.api('report', {
+            response = abuseipdb.api.call('report', {
                 'ip': self.getParamValue('ip', event),
                 'categories': ",".join(categories),
                 'comment': self.getParamValue('comment', event),
             })
 
             json = response['data']
-        except abuseipdb.AbuseIPDBError as e:
+        except abuseipdb.api.AbuseIPDBError as e:
             error = str(e)
 
         return {
@@ -370,7 +371,7 @@ class AbuseIPDBCommand(StreamingCommand):
         data = []
 
         while nbr_retrieved < limit:
-            response = abuseipdb.api('reports', {
+            response = abuseipdb.api.call('reports', {
                 'ipAddress': ip,
                 'maxAgeInDays': self.getParamValue('age', event),
                 'perPage': min(limit - nbr_retrieved, 100),
@@ -383,7 +384,7 @@ class AbuseIPDBCommand(StreamingCommand):
                 categories = []
 
                 for id in report['categories']:
-                    categories.append(abuseipdb.Categories.get_category(id, default=id))
+                    categories.append(abuseipdb.api.Categories.get_category(id, default=id))
 
                 data.append({
                     'ip': ip,
@@ -464,29 +465,29 @@ class AbuseIPDBCommand(StreamingCommand):
 
                     # Stop the command if the job was terminated.
                     self.check_termination()
-                except abuseipdb.AbuseIPDBRateLimitReached as e:
-                    self.write_warning("AbuseIPDB API rate limit reached")
+                except abuseipdb.api.AbuseIPDBRateLimitReached as e:
+                    self.write_warning("AbuseIPDB: API rate limit reached")
                     yield event
                     should_stop = True
-                except abuseipdb.AbuseIPDBInvalidParameter as e:
-                    self.write_warning("Invalid parameter: %s" % str(e))
+                except abuseipdb.api.AbuseIPDBInvalidParameter as e:
+                    self.write_warning("AbuseIPDB: Invalid parameter - %s" % str(e))
                     yield event
-                except abuseipdb.AbuseIPDBError as e:
-                    self.write_warning("AbuseIPDB error: %s" % str(e))
+                except abuseipdb.api.AbuseIPDBError as e:
+                    self.write_warning("AbuseIPDB: API error - %s" % str(e))
                     yield event
-                except abuseipdb.AbuseIPDBUnreachable:
-                    self.write_warning("AbuseIPDB is unreachable")
+                except abuseipdb.api.AbuseIPDBUnreachable:
+                    self.write_warning("AbuseIPDB: API is unreachable")
                     yield event
                     should_stop = True
-                except abuseipdb.AbuseIPDBMissingParameter as e:
+                except abuseipdb.api.AbuseIPDBMissingParameter as e:
                     self.write_error("AbuseIPDB: field '%s' required (mode = %s)" % (str(e), self.mode))
-                    exit(abuseipdb.ERR_MISSING_PARAMETER)
+                    exit(abuseipdb.api.ERR_MISSING_PARAMETER)
                 except SplunkJobTerminatedException:
                     yield event
                     should_stop = True
                 except Exception as e:
-                    self.write_error("Error: %s" % str(e))
-                    exit(abuseipdb.ERR_UNKNOWN_EXCEPTION)
+                    self.write_error("AbuseIPDB: Unknown error - %s" % str(e))
+                    exit(abuseipdb.api.ERR_UNKNOWN_EXCEPTION)
                     
             events = [{}]
 

@@ -74,6 +74,7 @@ class AbuseIPDBError(Exception): pass
 # an error when we called an endpoint.
 class AbuseIPDBMissingParameter(Exception): pass
 
+
 # Get the key from the given service for
 # the given app.
 def load_api_key(service, app):
@@ -114,7 +115,7 @@ def _get_http_response_details(json, key = 'detail'):
 
 # This method makes an API call to the
 # AbuseIPDB endpoint.
-def api(endpoint, params):
+def call(endpoint, params):
     headers = {
         'Key': API_KEY,
         'Accept': 'application/json'
